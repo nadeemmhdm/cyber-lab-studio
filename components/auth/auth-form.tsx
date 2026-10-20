@@ -12,6 +12,7 @@ import {
   signInWithPopup,
   signOut,
   updateProfile,
+  type Auth,
   type User,
 } from "firebase/auth";
 import { useState, type FormEvent } from "react";
@@ -19,7 +20,6 @@ import { FeedbackToast } from "@/components/ui/feedback-toast";
 import { prepareFirebaseAuth } from "@/lib/firebase/client";
 
 type Mode = "login" | "register" | "forgot";
-
 type SessionResponse = { ok?: boolean; error?: string };
 
 function friendlyFirebaseError(error: unknown) {
@@ -64,16 +64,16 @@ export function AuthForm({ mode, notice }: { mode: Mode; notice?: string }) {
     forgot: { title: "Reset your password", subtitle: "Firebase will send a password-reset link to the account email.", submit: "Send reset link" },
   };
 
-  async function finishSignedInUser(user: User) {
+  async function finishSignedInUser(user: User, auth: Auth) {
     if (!user.emailVerified) {
       await sendEmailVerification(user, { url: `${window.location.origin}/login?verified=check` });
-      await signOut(user.auth);
+      await signOut(auth);
       setTone("error");
       setMessage("Verify your email first. A new verification email has been sent.");
       return false;
     }
     await createServerSession(user);
-    await signOut(user.auth);
+    await signOut(auth);
     router.replace("/dashboard");
     router.refresh();
     return true;
@@ -99,16 +99,14 @@ export function AuthForm({ mode, notice }: { mode: Mode; notice?: string }) {
         setMessage("Account created. Check your email and open the Firebase verification link before signing in.");
         return;
       }
-
       if (mode === "forgot") {
         await sendPasswordResetEmail(auth, formEmail, { url: `${window.location.origin}/login?reset=success` });
         setTone("success");
         setMessage("If the account can receive password resets, Firebase has sent a reset link.");
         return;
       }
-
       const credential = await signInWithEmailAndPassword(auth, formEmail, password);
-      await finishSignedInUser(credential.user);
+      await finishSignedInUser(credential.user, auth);
     } catch (error) {
       setTone("error");
       setMessage(friendlyFirebaseError(error));
@@ -125,7 +123,7 @@ export function AuthForm({ mode, notice }: { mode: Mode; notice?: string }) {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
       const credential = await signInWithPopup(auth, provider);
-      await finishSignedInUser(credential.user);
+      await finishSignedInUser(credential.user, auth);
     } catch (error) {
       setTone("error");
       setMessage(friendlyFirebaseError(error));
@@ -137,31 +135,15 @@ export function AuthForm({ mode, notice }: { mode: Mode; notice?: string }) {
   const meta = titles[mode];
   return (
     <div className="auth-card glass">
-      <div>
-        <p className="eyebrow">Firebase secure access</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">{meta.title}</h1>
-        <p className="mt-3 text-sm leading-6 muted">{meta.subtitle}</p>
-      </div>
-
+      <div><p className="eyebrow">Firebase secure access</p><h1 className="mt-3 text-3xl font-semibold tracking-tight">{meta.title}</h1><p className="mt-3 text-sm leading-6 muted">{meta.subtitle}</p></div>
       <form className="mt-7 space-y-4" onSubmit={submit}>
-        {mode === "register" ? (
-          <label className="field-label">Display name<input className="field-input" name="displayName" autoComplete="name" minLength={2} maxLength={80} required /></label>
-        ) : null}
+        {mode === "register" ? <label className="field-label">Display name<input className="field-input" name="displayName" autoComplete="name" minLength={2} maxLength={80} required /></label> : null}
         <label className="field-label">Email address<input className="field-input" name="email" type="email" autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
-        {mode !== "forgot" ? (
-          <label className="field-label">Password<input className="field-input" name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "register" ? 10 : 1} maxLength={128} required /></label>
-        ) : null}
+        {mode !== "forgot" ? <label className="field-label">Password<input className="field-input" name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "register" ? 10 : 1} maxLength={128} required /></label> : null}
         <button type="submit" className="button-primary w-full" disabled={busy}>{busy ? "Please wait…" : meta.submit}</button>
       </form>
-
       <div className="mt-4"><FeedbackToast message={message} tone={tone} /></div>
-
-      {mode === "login" ? (
-        <div className="mt-6 space-y-3 text-sm">
-          <button type="button" className="button-secondary flex w-full justify-center" onClick={googleSignIn} disabled={busy}>Continue with Google</button>
-          <div className="flex items-center justify-between gap-3"><Link href="/forgot-password" className="text-link">Forgot password?</Link><Link href="/register" className="text-link">Create account</Link></div>
-        </div>
-      ) : null}
+      {mode === "login" ? <div className="mt-6 space-y-3 text-sm"><button type="button" className="button-secondary flex w-full justify-center" onClick={googleSignIn} disabled={busy}>Continue with Google</button><div className="flex items-center justify-between gap-3"><Link href="/forgot-password" className="text-link">Forgot password?</Link><Link href="/register" className="text-link">Create account</Link></div></div> : null}
       {mode === "register" ? <p className="mt-6 text-sm muted">Already registered? <Link className="text-link" href="/login">Sign in</Link></p> : null}
       {mode === "forgot" ? <p className="mt-6 text-sm muted"><Link className="text-link" href="/login">Back to sign in</Link></p> : null}
     </div>
