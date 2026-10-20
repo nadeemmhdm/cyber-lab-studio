@@ -77,13 +77,13 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 8 — Complete educational content
 
-- [ ] All 30 lab explanations
-- [ ] Scenarios and initial state
-- [ ] Tasks
-- [ ] Three hint levels
-- [ ] Complete solutions
-- [ ] Command-by-command explanation
-- [ ] Common mistakes and troubleshooting
+- [x] All 30 lab explanations
+- [x] Scenarios and initial state
+- [x] Tasks
+- [x] Three hint levels
+- [x] Complete solutions
+- [x] Command-by-command explanation
+- [x] Common mistakes and troubleshooting
 
 ## Phase 9 — Validation, flags, achievements
 
