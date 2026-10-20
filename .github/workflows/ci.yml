@@ -84,7 +84,12 @@ jobs:
         run: |
           & .\install.ps1 -DryRun
           node --check scripts/remote-setup.mjs
+          node --check scripts/windows-child-process-patch.cjs
           node scripts/run-remote-setup.cjs --process-smoke
+      - name: Reproduce npm.cmd child-process invocation
+        shell: pwsh
+        run: |
+          node --require .\scripts\windows-child-process-patch.cjs -e "const {spawnSync}=require('node:child_process'); const r=spawnSync('npm.cmd',['--version'],{stdio:'inherit',shell:false}); if(r.error){console.error(r.error);process.exit(1)} process.exit(r.status ?? 1)"
       - name: Validate unified Windows bootstrap
         run: cmd /c cyberlab.cmd doctor --ci
       - name: Install locked dependencies
