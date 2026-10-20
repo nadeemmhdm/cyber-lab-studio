@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotFound() { return <section className="shell py-16"><div className="panel mx-auto max-w-xl p-8 text-center"><p className="eyebrow">404</p><h1 className="mt-2 text-3xl font-semibold">Page not found</h1><p className="mt-3 muted">The requested CyberLab page does not exist.</p><Link className="button-primary mt-6 inline-flex" href="/dashboard">Go to dashboard</Link></div></section>; }

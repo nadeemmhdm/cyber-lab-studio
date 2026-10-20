@@ -5,136 +5,20 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { LabDefinition, LabDifficulty, LabPlatform } from "@/lib/labs/catalog";
 
-const PLATFORM_LABELS: Record<LabPlatform, string> = {
-  FUNDAMENTALS: "Fundamentals",
-  AWS: "AWS",
-  AZURE: "Azure",
-  SENTINEL: "Sentinel",
-  KQL: "KQL",
-  DEFENDER_XDR: "Defender XDR",
-};
-
-const DIFFICULTY_LABELS: Record<LabDifficulty, string> = {
-  BEGINNER: "Beginner",
-  INTERMEDIATE: "Intermediate",
-  ADVANCED: "Advanced",
-};
-
-type Props = { labs: readonly LabDefinition[] };
-
+const PLATFORM_LABELS: Record<LabPlatform, string> = { FUNDAMENTALS: "Fundamentals", AWS: "AWS", AZURE: "Azure", SENTINEL: "Sentinel", KQL: "KQL", DEFENDER_XDR: "Defender XDR" };
+const DIFFICULTY_LABELS: Record<LabDifficulty, string> = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
+type Status = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+type Props = { labs: readonly LabDefinition[]; progress?: Record<number, Status> };
 type Sort = "number" | "duration" | "difficulty";
+const difficultyRank: Record<LabDifficulty, number> = { BEGINNER: 1, INTERMEDIATE: 2, ADVANCED: 3 };
 
-const difficultyRank: Record<LabDifficulty, number> = {
-  BEGINNER: 1,
-  INTERMEDIATE: 2,
-  ADVANCED: 3,
-};
-
-export function LabCatalogue({ labs }: Props) {
+export function LabCatalogue({ labs, progress = {} }: Props) {
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState<"ALL" | LabPlatform>("ALL");
   const [difficulty, setDifficulty] = useState<"ALL" | LabDifficulty>("ALL");
+  const [status, setStatus] = useState<"ALL" | Status>("ALL");
   const [sort, setSort] = useState<Sort>("number");
-
-  const filtered = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return [...labs]
-      .filter((lab) => platform === "ALL" || lab.platform === platform)
-      .filter((lab) => difficulty === "ALL" || lab.difficulty === difficulty)
-      .filter((lab) => {
-        if (!normalized) return true;
-        return `${lab.number} ${lab.title} ${lab.objective} ${PLATFORM_LABELS[lab.platform]}`.toLowerCase().includes(normalized);
-      })
-      .sort((a, b) => {
-        if (sort === "duration") return a.estimatedMinutes - b.estimatedMinutes || a.number - b.number;
-        if (sort === "difficulty") return difficultyRank[a.difficulty] - difficultyRank[b.difficulty] || a.number - b.number;
-        return a.number - b.number;
-      });
-  }, [difficulty, labs, platform, query, sort]);
-
-  return (
-    <div>
-      <div className="glass rounded-2xl p-4">
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
-          <label className="relative block">
-            <span className="sr-only">Search labs</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 muted" size={18} aria-hidden="true" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search labs, platforms, or objectives…"
-              className="focus-ring w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none"
-              style={{ borderColor: "var(--border)", background: "var(--surface-strong)", color: "var(--foreground)" }}
-            />
-          </label>
-
-          <label className="flex items-center gap-2 rounded-xl border px-3" style={{ borderColor: "var(--border)", background: "var(--surface-strong)" }}>
-            <SlidersHorizontal size={16} className="muted" aria-hidden="true" />
-            <span className="sr-only">Platform</span>
-            <select value={platform} onChange={(event) => setPlatform(event.target.value as "ALL" | LabPlatform)} className="focus-ring bg-transparent py-2.5 text-sm outline-none">
-              <option value="ALL">All platforms</option>
-              {Object.entries(PLATFORM_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
-
-          <label className="rounded-xl border px-3" style={{ borderColor: "var(--border)", background: "var(--surface-strong)" }}>
-            <span className="sr-only">Difficulty</span>
-            <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as "ALL" | LabDifficulty)} className="focus-ring bg-transparent py-2.5 text-sm outline-none">
-              <option value="ALL">All difficulty</option>
-              {Object.entries(DIFFICULTY_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
-
-          <label className="rounded-xl border px-3" style={{ borderColor: "var(--border)", background: "var(--surface-strong)" }}>
-            <span className="sr-only">Sort labs</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value as Sort)} className="focus-ring bg-transparent py-2.5 text-sm outline-none">
-              <option value="number">Sort: Lab number</option>
-              <option value="duration">Sort: Duration</option>
-              <option value="difficulty">Sort: Difficulty</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between text-sm muted">
-        <span>{filtered.length} of {labs.length} labs</span>
-        <span>Catalogue foundation</span>
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="mt-6 rounded-2xl border p-10 text-center" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-          <h2 className="text-lg font-semibold">No matching labs</h2>
-          <p className="mt-2 muted">Clear a filter or try a different search term.</p>
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((lab) => (
-            <article key={lab.number} className="flex min-h-[300px] flex-col rounded-2xl border p-5" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>Lab {String(lab.number).padStart(2, "0")}</span>
-                  <h2 className="mt-2 text-xl font-semibold tracking-tight">{lab.title}</h2>
-                </div>
-                <span className="rounded-lg px-2.5 py-1 text-xs font-semibold" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-                  {PLATFORM_LABELS[lab.platform]}
-                </span>
-              </div>
-
-              <p className="mt-4 flex-1 text-sm leading-6 muted">{lab.objective}</p>
-
-              <div className="mt-5 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-lg border px-2.5 py-1" style={{ borderColor: "var(--border)" }}>{DIFFICULTY_LABELS[lab.difficulty]}</span>
-                <span className="rounded-lg border px-2.5 py-1" style={{ borderColor: "var(--border)" }}>{lab.estimatedMinutes} min</span>
-                <span className="rounded-lg border px-2.5 py-1" style={{ borderColor: "var(--border)" }}>Not started</span>
-              </div>
-
-              <Link href={`/labs/${lab.slug}`} className="focus-ring mt-5 inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "var(--accent)" }}>
-                Open lab
-              </Link>
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  const filtered = useMemo(() => { const normalized = query.trim().toLowerCase(); return [...labs].filter((lab) => platform === "ALL" || lab.platform === platform).filter((lab) => difficulty === "ALL" || lab.difficulty === difficulty).filter((lab) => status === "ALL" || (progress[lab.number] ?? "NOT_STARTED") === status).filter((lab) => !normalized || `${lab.number} ${lab.title} ${lab.objective} ${PLATFORM_LABELS[lab.platform]}`.toLowerCase().includes(normalized)).sort((a, b) => sort === "duration" ? a.estimatedMinutes - b.estimatedMinutes || a.number - b.number : sort === "difficulty" ? difficultyRank[a.difficulty] - difficultyRank[b.difficulty] || a.number - b.number : a.number - b.number); }, [difficulty, labs, platform, progress, query, sort, status]);
+  return <div><div className="glass rounded-2xl p-4"><div className="grid gap-3 xl:grid-cols-[1fr_auto_auto_auto_auto]"><label className="relative block"><span className="sr-only">Search labs</span><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 muted" size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search labs, platforms, or objectives…" className="field-input pl-10" /></label><Filter icon value={platform} onChange={(value) => setPlatform(value as "ALL" | LabPlatform)} label="Platform" options={[['ALL','All platforms'], ...Object.entries(PLATFORM_LABELS)]} /><Filter value={difficulty} onChange={(value) => setDifficulty(value as "ALL" | LabDifficulty)} label="Difficulty" options={[['ALL','All difficulty'], ...Object.entries(DIFFICULTY_LABELS)]} /><Filter value={status} onChange={(value) => setStatus(value as "ALL" | Status)} label="Status" options={[["ALL","All status"],["NOT_STARTED","Not started"],["IN_PROGRESS","In progress"],["COMPLETED","Completed"]]} /><Filter value={sort} onChange={(value) => setSort(value as Sort)} label="Sort" options={[["number","Sort: Lab number"],["duration","Sort: Duration"],["difficulty","Sort: Difficulty"]]} /></div></div><div className="mt-5 flex items-center justify-between text-sm muted"><span>{filtered.length} of {labs.length} labs</span><span>Live catalogue</span></div>{filtered.length === 0 ? <div className="empty-state mt-6"><h2 className="text-lg font-semibold">No matching labs</h2><p className="mt-2 muted">Clear a filter or try a different search term.</p></div> : <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filtered.map((lab) => { const state = progress[lab.number] ?? "NOT_STARTED"; return <article key={lab.number} className="lab-card"><div className="flex items-start justify-between gap-3"><div><span className="eyebrow">Lab {String(lab.number).padStart(2, "0")}</span><h2 className="mt-2 text-xl font-semibold tracking-tight">{lab.title}</h2></div><span className="status-pill">{PLATFORM_LABELS[lab.platform]}</span></div><p className="mt-4 flex-1 text-sm leading-6 muted">{lab.objective}</p><div className="mt-5 flex flex-wrap gap-2 text-xs"><span className="status-pill">{DIFFICULTY_LABELS[lab.difficulty]}</span><span className="status-pill">{lab.estimatedMinutes} min</span><span className="status-pill">{state.replaceAll("_", " ")}</span></div><Link href={`/labs/${lab.slug}`} className="button-primary mt-5 flex justify-center">{state === "COMPLETED" ? "Review lab" : state === "IN_PROGRESS" ? "Continue lab" : "Open lab"}</Link></article>; })}</div>}</div>;
 }
+function Filter({ icon, value, onChange, label, options }: { icon?: boolean; value: string; onChange: (value: string) => void; label: string; options: string[][] }) { return <label className="filter-field">{icon ? <SlidersHorizontal size={16} className="muted" /> : null}<span className="sr-only">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="focus-ring bg-transparent py-2.5 text-sm outline-none">{options.map(([option, text]) => <option key={option} value={option}>{text}</option>)}</select></label>; }

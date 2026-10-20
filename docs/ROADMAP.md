@@ -31,10 +31,10 @@ The repository follows the product build specification in twelve implementation 
 - [x] Base responsive visual system
 - [x] Light/dark/system theme foundation
 - [x] All-labs searchable catalogue
-- [ ] Student dashboard with database-backed statistics
-- [ ] Progress, achievements, history, profile, docs, system health pages
-- [ ] Loading, error, empty, toast, and dialog patterns
-- [ ] Accessibility audit
+- [x] Student dashboard with database-backed statistics
+- [x] Progress, achievements, history, profile, docs, system health pages
+- [x] Loading, error, empty, toast, and dialog patterns
+- [x] Accessibility audit
 
 ## Phase 4 — Lab engine and isolated state
 
