@@ -4,7 +4,9 @@ CyberLab Studio Pro is a multi-user cybersecurity training platform for hands-on
 
 ## Current status
 
-Phases 1–9 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset before verified completion, persisted progress/history, cross-user isolation, native AWS and Azure simulators, a KQL AST evaluator, Microsoft Sentinel detection/incident workflows, Defender XDR investigation state built from shared synthetic security events, complete Version 2 educational curriculum for all 30 labs, and server-authoritative validation with transactional completion, cryptographic per-user flags, and verified achievements.
+Phases 1–11 are implemented. The platform now includes a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, 30 versioned per-student labs, native AWS/Azure simulators, KQL/Sentinel/Defender investigation engines, complete educational content, server-authoritative validation and cryptographic flags, instructor/admin management, platform maintenance/quota controls, bounded history and management reads, request rate/body limits, strengthened CSRF/origin checks, CSP/HSTS security headers, SQLite/performance profiling, explicit performance budgets, and tested keyboard/reduced-motion accessibility controls.
+
+Phase 12 remains the deployment/full-E2E phase: Windows packaging/setup documentation, backup/restore, Cloudflare Tunnel/Access, final E2E isolation verification, and release checklist.
 
 The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and blocks on `npm audit --audit-level=moderate`.
 
@@ -20,6 +22,8 @@ The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and bl
 - Versioned 30-lab educational content registry
 - Server-side 30-lab validation registry
 - Transactional completion/flag/achievement services
+- Instructor/admin RBAC management services
+- Server request guards and performance observability
 - Zod validation
 - Vitest
 
@@ -28,45 +32,37 @@ The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and bl
 1. Install Node.js 24.12+.
 2. Create a Firebase project and enable Email/Password and Google providers in Firebase Authentication.
 3. Add your local/production hostnames to Firebase Authorized domains.
-4. Copy `.env.example` to `.env` and provide the Firebase Web + Admin values.
+4. Copy `.env.example` to `.env` and provide the Firebase Web + Admin values and a strong `SESSION_SECRET`.
 5. Install the locked dependency graph: `npm ci`.
 6. Create/update SQLite schema: `npx prisma db push`.
-7. Seed labs, simulator state, and Phase 8 Version 2 curriculum: `npm run db:seed`.
+7. Seed labs and curriculum: `npm run db:seed`.
 8. Start development: `npm run dev`.
 9. Open `http://localhost:3000`.
 
 No `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is required by CyberLab. Google identity is configured through Firebase Console.
 
-## Simulator surfaces
+## Learning and simulation
 
-AWS labs use the native CyberLab AWS CLI simulator; Azure labs use the native Azure CLI simulator. Sentinel, KQL, and Defender XDR labs use the shared security dataset and KQL engine.
+AWS labs use the native CyberLab AWS CLI simulator; Azure labs use the native Azure CLI simulator. Sentinel, KQL, and Defender XDR labs use the shared security dataset and KQL engine. Unsupported operations fail explicitly and simulator input is never forwarded to a host shell.
 
-Examples:
-
-```text
-aws sts get-caller-identity
-aws ec2 describe-security-groups
-az account show
-az network nsg list --resource-group cyberlab-rg
-SigninLogs | where RiskLevel == "high" | project TimeGenerated, UserPrincipalName, IPAddress
-DeviceProcessEvents | where ProcessCommandLine contains "powershell" | summarize Total=count() by DeviceName
-```
-
-The native simulators never forward input to a host shell or real cloud account. Unsupported operations fail explicitly.
-
-## Educational modes
-
-- **Guided** — concepts, tasks, three progressive hints, and the full educational solution are available.
-- **Practice** — keeps the curriculum and solution available while learners perform the real simulator/query workflow themselves.
-- **Challenge** — hides concepts, hints, and solutions according to the lab-mode policy.
-
-Opening a hint or solution never grants completion. Task workflow is capped below 100%; the authenticated server validates persisted evidence before issuing the completion record and unique flag. Verified labs are then locked against environment reset so an earned completion remains tied to the state that was certified.
+Guided and Practice modes can expose curriculum guidance according to administrator policy; Challenge mode hides guidance. Administrators can globally disable modes, hints, or solutions. Instructor views are restricted to assigned students unless the caller is an administrator.
 
 ## Validation and achievements
 
-Each of the 30 labs has a server-side validator profile. Depending on the lab, validation can use successful terminal history, successful KQL history, persisted simulator state, state-derived findings, and persisted Sentinel/Defender investigation actions. Read-only investigation labs are not forced to perform fake mutations.
+Each of the 30 labs has a server-side validator profile. Task workflow is capped below 100%; persisted evidence must pass validation before completion. Successful validation atomically records the validation result, passed attempt, 100% progress, completion record, cryptographically random per-user `CYBERLAB{...}` flag, audit event, and achievement evaluation. Failed validation creates no completion or flag. Verified environments are locked against later mutation.
 
-Successful validation atomically records the passing validation result, marks the attempt passed, moves progress to 100%, creates the completion record, issues one cryptographically random `CYBERLAB{...}` flag, writes an audit event, and evaluates achievements. Failed validation creates no completion or flag. Re-validating an already completed lab returns the same existing flag rather than creating duplicates.
+## Phase 11 hardening
+
+- Unsafe state-changing requests require same-origin evidence; sign-in retains a separate CSRF token check.
+- Session and CSRF cookies use `SameSite=Strict`, `HttpOnly`, and production `Secure`.
+- Authentication, simulator, security-operations, instructor, and admin mutations have scoped rate limits and body-size limits.
+- Global CSP, clickjacking, MIME, permissions, referrer, COOP, and production HSTS headers are applied.
+- History is paginated and admin/audit/performance collections are bounded.
+- Platform-control reads use a short server cache with write invalidation; transactional enforcement bypasses the cache.
+- SQLite query plans and server operation timings are observable in the admin dashboard with explicit budgets.
+- Skip navigation, focus-visible styling, and `prefers-reduced-motion` behavior are regression-tested.
+
+The current request limiter is process-local and is appropriate for the current local/single-process architecture. A horizontally scaled Phase 12 deployment should use a shared rate-limit store. See the threat model for residual risks.
 
 ## Useful commands
 
@@ -86,15 +82,11 @@ npm run db:studio
 
 - Firebase Web SDK handles identity; Firebase Admin verifies server sessions.
 - Browser code never receives Firebase Admin credentials, database secrets, hidden validator internals, or real cloud credentials.
-- Completion flags are generated only after successful server-side validation and are globally unique in the database.
-- Authentication state for CyberLab is an HttpOnly server session cookie, not localStorage.
-- Simulator commands use registries and internal state only; host-shell execution is prohibited.
+- Roles, ownership, maintenance/quota policy, validation, completion, and privileged mutations are enforced server-side.
+- Simulator commands use internal registries/state only; host-shell execution is prohibited.
 - KQL executes only against stored synthetic training tables.
-- Sentinel analytics rules create alerts only from real KQL matches in the learner environment.
-- Defender XDR correlations reference the same stored event IDs used by KQL and Sentinel.
 - Student lab environments are isolated by user + lab + version.
-- Educational hints/solutions do not contain flags or hidden validator internals.
-- Unsupported simulator operations return explicit errors rather than fake success.
+- Unsupported operations return explicit errors rather than fake success.
 - CI audits the locked npm dependency graph and fails on moderate-or-higher findings.
 
 ## Documentation
@@ -108,7 +100,12 @@ npm run db:studio
 - `docs/SECURITY-OPERATIONS.md` — Sentinel + Defender XDR shared investigation model
 - `docs/PHASE8-CONTENT.md` — Version 2 educational content architecture
 - `docs/PHASE9.md` — validation, completion, flags, achievements, and leakage controls
-- `docs/COMPATIBILITY.md` — implemented compatibility matrix
+- `docs/PHASE10.md` — instructor/admin management and platform controls
+- `docs/PHASE10-COMPATIBILITY.md` — Phase 10 management matrix
+- `docs/PHASE11.md` — performance/security/accessibility hardening
+- `docs/PHASE11-COMPATIBILITY.md` — hardening compatibility matrix
+- `docs/THREAT-MODEL.md` — trust boundaries, controls, and residual risks
+- `docs/COMPATIBILITY.md` — simulator/product compatibility matrix
 - `docs/ROADMAP.md` — implementation phases
 - `SECURITY.md` — vulnerability reporting and security rules
 
