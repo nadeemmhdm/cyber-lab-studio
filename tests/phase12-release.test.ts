@@ -3,7 +3,16 @@ import { RoleType, SupportTicketStatus } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { AdminBootstrapError, getInitialAdminState, provisionInitialAdmin } from "@/lib/setup/admin-bootstrap";
-import { addAdminSupportReply, addUserSupportReply, createSupportTicket, listAdminSupportTickets, listUserTickets, updateSupportTicketStatus } from "@/lib/support/service";
+import {
+  addAdminSupportReply,
+  addUserSupportReply,
+  createSupportTicket,
+  listAdminSupportTickets,
+  listUserTickets,
+  purgeExpiredResolvedSupportTickets,
+  SUPPORT_RESOLVED_RETENTION_MS,
+  updateSupportTicketStatus,
+} from "@/lib/support/service";
 
 const suffix = randomUUID().slice(0, 8);
 const previousInitialAdminEmail = process.env.INITIAL_ADMIN_EMAIL;
@@ -83,5 +92,41 @@ describe("release admin bootstrap and support workflow", () => {
 
     await updateSupportTicketStatus(adminId, ticket.id, SupportTicketStatus.CLOSED);
     await expect(addUserSupportReply(userId, ticket.id, "This should not be accepted after closure.")).rejects.toMatchObject({ code: "TICKET_CLOSED" });
+  });
+
+  it("purges solved tickets 24 hours after the solved transition even when later updates touch updatedAt", async () => {
+    const ticket = await createSupportTicket(userId, {
+      subject: "Retention anchor test",
+      category: "Platform issue",
+      message: "This ticket verifies that solved retention is anchored to the solved transition.",
+    });
+    await updateSupportTicketStatus(adminId, ticket.id, SupportTicketStatus.RESOLVED);
+
+    const statusAudit = await prisma.auditLog.findFirst({
+      where: { action: "support.ticket.status_updated", targetType: "SupportTicket", targetId: ticket.id },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(statusAudit).not.toBeNull();
+
+    const now = new Date("2030-01-02T12:00:00.000Z");
+    const solvedAt = new Date(now.getTime() - SUPPORT_RESOLVED_RETENTION_MS - 60_000);
+    await prisma.auditLog.update({ where: { id: statusAudit!.id }, data: { createdAt: solvedAt } });
+    await prisma.supportTicket.update({ where: { id: ticket.id }, data: { updatedAt: now } });
+
+    await purgeExpiredResolvedSupportTickets(now);
+    expect(await prisma.supportTicket.findUnique({ where: { id: ticket.id } })).toBeNull();
+  });
+
+  it("keeps recently solved tickets inside the 24-hour retention window", async () => {
+    const ticket = await createSupportTicket(userId, {
+      subject: "Recent solved ticket",
+      category: "Platform issue",
+      message: "This ticket must remain visible until its full 24-hour solved retention expires.",
+    });
+    await updateSupportTicketStatus(adminId, ticket.id, SupportTicketStatus.RESOLVED);
+
+    const now = new Date();
+    await purgeExpiredResolvedSupportTickets(now);
+    expect(await prisma.supportTicket.findUnique({ where: { id: ticket.id } })).not.toBeNull();
   });
 });
