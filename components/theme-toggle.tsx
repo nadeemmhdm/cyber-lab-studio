@@ -1,7 +1,10 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+const STORAGE_KEY = "cyberlab-theme";
+const CHANGE_EVENT = "cyberlab-theme-change";
 
 const OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
@@ -10,6 +13,31 @@ const OPTIONS = [
 ] as const;
 
 type Theme = (typeof OPTIONS)[number]["value"];
+
+function isTheme(value: string | null): value is Theme {
+  return OPTIONS.some((option) => option.value === value);
+}
+
+function getThemeSnapshot(): Theme {
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  return isTheme(saved) ? saved : "system";
+}
+
+function getServerThemeSnapshot(): Theme {
+  return "system";
+}
+
+function subscribeToTheme(callback: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === STORAGE_KEY) callback();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(CHANGE_EVENT, callback);
+  };
+}
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
@@ -21,19 +49,16 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
+  const theme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerThemeSnapshot);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("cyberlab-theme") as Theme | null;
-    const next = OPTIONS.some((option) => option.value === saved) ? saved! : "system";
-    setTheme(next);
-    applyTheme(next);
-  }, []);
+    applyTheme(theme);
+  }, [theme]);
 
   function updateTheme(next: Theme) {
-    setTheme(next);
-    window.localStorage.setItem("cyberlab-theme", next);
+    window.localStorage.setItem(STORAGE_KEY, next);
     applyTheme(next);
+    window.dispatchEvent(new Event(CHANGE_EVENT));
   }
 
   return (
