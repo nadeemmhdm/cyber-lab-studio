@@ -1,6 +1,6 @@
 # Compatibility Matrix
 
-This document records implemented platform capabilities. AWS command compatibility is also maintained machine-readably in `lib/simulators/aws/compatibility.ts` and rendered in the application at `/docs/aws-compatibility`.
+This document records implemented platform capabilities. AWS and Azure command compatibility are also maintained by their native simulator registries and rendered at `/docs/aws-compatibility` and `/docs/azure-compatibility`.
 
 ## Authentication
 
@@ -70,4 +70,30 @@ CyberLab implements a tested AWS training subset; it does not claim full AWS CLI
 
 AWS-style errors include `AccessDenied`, `InvalidParameter`, `InvalidParameterValue`, `ResourceNotFound`, `EntityAlreadyExists`, `DependencyViolation`, and `UnsupportedOperation`.
 
-See `docs/AWS-SIMULATOR.md` and `/docs/aws-compatibility` for the command-level matrix and examples.
+See `docs/AWS-SIMULATOR.md` and `/docs/aws-compatibility`.
+
+## Azure native simulator
+
+CyberLab implements a tested Azure training subset; it does not claim full Azure CLI/API compatibility.
+
+| Family | Implemented capability |
+| --- | --- |
+| Account | subscription and tenant discovery |
+| Entra ID | users, groups, membership and account state |
+| Azure RBAC | role-assignment list/create/delete with simulated permission checks |
+| Resource groups | list/show/create/delete with dependency protection |
+| Resource inventory | subscription/resource-group scoped discovery |
+| Virtual networks | VNet and subnet list/show/create/update |
+| NSGs | NSG and security-rule list/show/create/delete |
+| Storage | account settings, containers, public access and blob operations |
+| Virtual machines | list/show/create, power state, patch posture and monitoring |
+| Activity log | persisted simulator operations and failures |
+| Security findings | state-derived Azure posture findings |
+| Command history | persisted per student/environment |
+| Unsupported commands | explicit `UnsupportedOperation` error |
+| Host-shell forwarding | Explicitly unsupported |
+| Real Azure forwarding | Explicitly unsupported by native simulator |
+
+Azure-style simulator errors include `AuthorizationFailed`, `ResourceNotFound`, `InvalidArgument`, `ResourceAlreadyExists`, `Conflict`, and `UnsupportedOperation`.
+
+See `docs/AZURE-SIMULATOR.md` and `/docs/azure-compatibility`.
