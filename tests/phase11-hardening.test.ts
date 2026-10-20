@@ -46,8 +46,8 @@ describe("Phase 11 performance, security, and accessibility hardening", () => {
 
   it("computes percentiles and records measured SQLite operations", async () => {
     expect(percentile([1, 2, 3, 4, 5], 95)).toBe(5);
-    const measured = await measureOperation("phase11.sqlite.test", () => prisma.$queryRaw<Array<{ value: number }>>`SELECT 1 AS value`);
-    expect(measured.result[0]?.value).toBe(1);
+    const measured = await measureOperation("phase11.sqlite.test", () => prisma.$queryRaw<Array<{ value: bigint }>>`SELECT 1 AS value`);
+    expect(Number(measured.result[0]?.value)).toBe(1);
     expect(measured.durationMs).toBeLessThan(1000);
     const sample = await prisma.auditLog.findFirst({ where: { action: "performance.sample", targetId: "phase11.sqlite.test" }, orderBy: { createdAt: "desc" } });
     expect(sample).not.toBeNull();
