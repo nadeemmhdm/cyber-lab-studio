@@ -59,13 +59,13 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 6 — Azure simulator
 
-- [ ] Entra identities
-- [ ] Resource groups/RBAC
-- [ ] Networking/NSGs
-- [ ] Storage
-- [ ] Virtual machines
-- [ ] Monitoring/audit
-- [ ] Azure CLI-style parser and compatibility matrix
+- [x] Entra identities
+- [x] Resource groups/RBAC
+- [x] Networking/NSGs
+- [x] Storage
+- [x] Virtual machines
+- [x] Monitoring/audit
+- [x] Azure CLI-style parser and compatibility matrix
 
 ## Phase 7 — Sentinel, KQL, Defender XDR
 
