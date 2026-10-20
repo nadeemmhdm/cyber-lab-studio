@@ -49,7 +49,7 @@ if (-not $nodeExe) {
 if ($args.Count -gt 0 -and $args[0] -eq "install") {
   $rest = @()
   if ($args.Count -gt 1) { $rest = $args[1..($args.Count - 1)] }
-  & $nodeExe (Join-Path $Root "scripts\remote-setup.mjs") @rest
+  & $nodeExe (Join-Path $Root "scripts\run-remote-setup.cjs") @rest
 } else {
   & $nodeExe (Join-Path $Root "scripts\cyberlab.mjs") @args
 }
