@@ -71,11 +71,11 @@ fi
 cd "$INSTALL_DIR"
 chmod +x ./cyberlab.sh
 if [[ "$fresh" == "1" || ! -f .env ]]; then
-  step "Starting first-time CyberLab setup"
-  exec ./cyberlab.sh setup
+  step "Starting complete first-time setup"
+  exec ./cyberlab.sh install
 else
-  step "Running CyberLab updater"
-  ./cyberlab.sh update
+  step "Checking packages, security audit, database and updates"
+  ./cyberlab.sh install --maintenance
   step "Opening CyberLab management menu"
   exec ./cyberlab.sh
 fi
