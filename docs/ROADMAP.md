@@ -1,13 +1,13 @@
 # CyberLab Studio Pro Roadmap
 
-The repository follows the product build specification in twelve implementation phases. A phase is complete only when its implementation, tests, documentation, and compatibility matrix updates are committed.
+The repository follows the product build specification in twelve implementation phases. A phase is complete only when its implementation, tests, documentation, and compatibility matrix updates are committed and CI passes.
 
 ## Phase 1 — Architecture and repository foundation
 
 - [x] Inspect repository
 - [x] Next.js/TypeScript foundation
-- [x] PostgreSQL/Prisma schema foundation
-- [x] Local Docker PostgreSQL
+- [x] SQLite/Prisma schema foundation
+- [x] Local SQLite development database
 - [x] 30-lab catalogue
 - [x] Base responsive UI and themes
 - [x] Health endpoint
@@ -16,15 +16,15 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 2 — Authentication and RBAC
 
-- [x] Email/password signup and login
-- [x] Argon2id hashing
-- [x] HttpOnly session lifecycle
-- [x] Email verification
-- [x] Password reset
-- [x] Logout and logout-all
-- [x] Student/Instructor/Admin authorization
-- [x] Rate limiting and brute-force controls
-- [x] Optional Google login
+- [x] Firebase email/password signup and login
+- [x] Firebase email verification links
+- [x] Firebase password-reset links
+- [x] Firebase Google sign-in
+- [x] HttpOnly Firebase Admin session-cookie lifecycle
+- [x] Logout and logout-all/revocation
+- [x] Student/Instructor/Admin server-side authorization
+- [x] Suspended-account enforcement
+- [x] Session creation CSRF protection
 
 ## Phase 3 — Premium product UI
 
@@ -38,12 +38,12 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 4 — Lab engine and isolated state
 
-- [ ] Versioned environment creator
-- [ ] Deterministic reset
-- [ ] Guided/Practice/Challenge policy
-- [ ] Task lifecycle and progress
-- [ ] Transactional state mutations
-- [ ] Cross-user isolation tests
+- [x] Versioned environment creator
+- [x] Deterministic reset
+- [x] Guided/Practice/Challenge policy
+- [x] Task lifecycle and progress
+- [x] Transactional state mutations
+- [x] Cross-user isolation tests
 
 ## Phase 5 — AWS simulator
 
@@ -105,10 +105,10 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 11 — Performance, security, accessibility
 
-- [ ] Connection pooling and query profiling
+- [ ] SQLite transaction/query profiling
 - [ ] Pagination/bounded history/caching
 - [ ] Rate/size limits
-- [ ] CSRF strategy
+- [ ] CSRF strategy hardening
 - [ ] CSP hardening
 - [ ] Security review and threat model
 - [ ] Accessibility and reduced-motion testing
