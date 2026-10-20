@@ -13,7 +13,11 @@ async function issueFlag(tx: Prisma.TransactionClient, userId: string, labId: st
     try {
       return await tx.flag.create({ data: { userId, labId, completionId, value: generateCompletionFlag() } });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") continue;
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const raced = await tx.flag.findUnique({ where: { userId_labId: { userId, labId } } });
+        if (raced) return raced;
+        continue;
+      }
       throw error;
     }
   }
@@ -38,19 +42,20 @@ export async function submitLabForValidation(userId: string, slug: string) {
       };
     }
 
-    const [environment, progress, attempt, terminalHistory, queryHistory] = await Promise.all([
+    const [environment, progress, attempt] = await Promise.all([
       tx.labEnvironment.findUnique({ where: { userId_labId_labVersionId: { userId, labId: lab.id, labVersionId: version.id } } }),
       tx.labProgress.findUnique({ where: { userId_labId: { userId, labId: lab.id } } }),
       tx.labAttempt.findFirst({ where: { userId, labId: lab.id, labVersionId: version.id }, orderBy: { startedAt: "desc" } }),
-      tx.terminalHistory.findMany({ where: { userId, environmentId: { not: null } }, orderBy: { createdAt: "asc" } }),
-      tx.queryHistory.findMany({ where: { userId, environmentId: { not: null } }, orderBy: { createdAt: "asc" } }),
     ]);
 
     if (!environment) throw new LabEngineError("ENVIRONMENT_NOT_STARTED", "Start the lab before validation.", 409);
     if (!progress || !attempt) throw new LabEngineError("ATTEMPT_NOT_STARTED", "Start the lab before validation.", 409);
 
-    const scopedTerminal = terminalHistory.filter((entry) => entry.environmentId === environment.id);
-    const scopedQueries = queryHistory.filter((entry) => entry.environmentId === environment.id);
+    const [terminalHistory, queryHistory] = await Promise.all([
+      tx.terminalHistory.findMany({ where: { userId, environmentId: environment.id }, orderBy: { createdAt: "asc" } }),
+      tx.queryHistory.findMany({ where: { userId, environmentId: environment.id }, orderBy: { createdAt: "asc" } }),
+    ]);
+
     const feedback = validateLabEvidence({
       labNumber: lab.number,
       platform: lab.platform,
@@ -58,8 +63,8 @@ export async function submitLabForValidation(userId: string, slug: string) {
       lastTaskPosition: progress.lastTaskPosition,
       environmentState: environment.environmentState,
       initialState: version.initialState,
-      terminalHistory: scopedTerminal.map((entry) => ({ command: entry.command, exitCode: entry.exitCode })),
-      queryHistory: scopedQueries.map((entry) => ({ query: entry.query, rowCount: entry.rowCount, errorCode: entry.errorCode })),
+      terminalHistory: terminalHistory.map((entry) => ({ command: entry.command, exitCode: entry.exitCode })),
+      queryHistory: queryHistory.map((entry) => ({ query: entry.query, rowCount: entry.rowCount, errorCode: entry.errorCode })),
     });
     const passed = feedback.every((check) => check.passed);
     const now = new Date();
@@ -76,7 +81,11 @@ export async function submitLabForValidation(userId: string, slug: string) {
       return { passed: false, completed: false, feedback, achievements: [] as { key: string; name: string }[] };
     }
 
-    const completion = await tx.completionRecord.create({ data: { userId, labId: lab.id, labVersionId: version.id, completedAt: now } });
+    const completion = await tx.completionRecord.upsert({
+      where: { userId_labId: { userId, labId: lab.id } },
+      update: {},
+      create: { userId, labId: lab.id, labVersionId: version.id, completedAt: now },
+    });
     const flag = await issueFlag(tx, userId, lab.id, completion.id);
 
     await Promise.all([
