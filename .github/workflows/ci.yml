@@ -12,7 +12,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       DATABASE_URL: file:./ci.db
       APP_URL: http://localhost:3000
@@ -49,6 +49,16 @@ jobs:
 
       - name: Seed database
         run: npm run db:seed
+
+      - name: Export curriculum data
+        run: npx tsx scripts/export-manual-data.ts lab-manual-data.json
+
+      - name: Upload curriculum data
+        uses: actions/upload-artifact@v4
+        with:
+          name: lab-manual-data
+          path: lab-manual-data.json
+          retention-days: 1
 
       - name: Lint
         run: npm run lint
