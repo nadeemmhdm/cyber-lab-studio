@@ -1,0 +1,455 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleType {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum Platform {
+  FUNDAMENTALS
+  AWS
+  AZURE
+  SENTINEL
+  KQL
+  DEFENDER_XDR
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum LearningMode {
+  GUIDED
+  PRACTICE
+  CHALLENGE
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AttemptStatus {
+  STARTED
+  FAILED
+  PASSED
+}
+
+enum ResourceProvider {
+  AWS
+  AZURE
+  SENTINEL
+  DEFENDER_XDR
+  INTERNAL
+}
+
+model User {
+  id                 String                 @id @default(cuid())
+  email              String                 @unique
+  passwordHash       String?
+  displayName        String
+  emailVerifiedAt    DateTime?
+  suspendedAt        DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  roles              UserRole[]
+  sessions           Session[]
+  attempts           LabAttempt[]
+  progress           LabProgress[]
+  environments       LabEnvironment[]
+  terminalHistory    TerminalHistory[]
+  queryHistory       QueryHistory[]
+  completions        CompletionRecord[]
+  flags              Flag[]
+  achievements       UserAchievement[]
+  auditLogs          AuditLog[]             @relation("AuditActor")
+  instructorLinks    InstructorAssignment[] @relation("Instructor")
+  studentLinks       InstructorAssignment[] @relation("AssignedStudent")
+  cloudIntegrations  OptionalCloudIntegration[]
+
+  @@index([createdAt])
+  @@index([suspendedAt])
+}
+
+model Role {
+  id          String      @id @default(cuid())
+  key         RoleType    @unique
+  name        String
+  description String?
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String?
+  roles       RolePermission[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  userAgent  String?
+  ipHash     String?
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  modules     Module[]
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  slug        String
+  title       String
+  description String
+  position    Int
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  labs        Lab[]
+
+  @@unique([courseId, slug])
+  @@unique([courseId, position])
+  @@index([courseId])
+}
+
+model Lab {
+  id               String             @id @default(cuid())
+  moduleId         String?
+  number           Int                @unique
+  slug             String             @unique
+  title            String
+  objective        String
+  platform         Platform
+  difficulty       Difficulty
+  estimatedMinutes Int
+  enabled          Boolean            @default(true)
+  prerequisiteIds  String[]           @default([])
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  module           Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  versions         LabVersion[]
+  attempts         LabAttempt[]
+  progress         LabProgress[]
+  environments     LabEnvironment[]
+  completions      CompletionRecord[]
+  flags            Flag[]
+
+  @@index([platform, difficulty])
+  @@index([enabled, number])
+}
+
+model LabVersion {
+  id                 String           @id @default(cuid())
+  labId              String
+  version            Int
+  published          Boolean          @default(false)
+  conceptExplanation String           @default("")
+  scenario           String           @default("")
+  prerequisites      Json             @default("[]")
+  supportedCommands  Json             @default("[]")
+  supportedUi        Json             @default("[]")
+  initialState        Json             @default("{}")
+  validationConfig   Json             @default("{}")
+  createdAt          DateTime         @default(now())
+  lab                Lab              @relation(fields: [labId], references: [id], onDelete: Cascade)
+  tasks              LabTask[]
+  hints              LabHint[]
+  solution           LabSolution?
+  attempts           LabAttempt[]
+  environments       LabEnvironment[]
+  completions        CompletionRecord[]
+
+  @@unique([labId, version])
+  @@index([labId, published])
+}
+
+model LabTask {
+  id           String     @id @default(cuid())
+  labVersionId String
+  position     Int
+  title        String
+  instruction  String
+  validatorKey String
+  labVersion   LabVersion @relation(fields: [labVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([labVersionId, position])
+}
+
+model LabHint {
+  id           String     @id @default(cuid())
+  labVersionId String
+  level        Int
+  content      String
+  labVersion   LabVersion @relation(fields: [labVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([labVersionId, level])
+}
+
+model LabSolution {
+  id                    String     @id @default(cuid())
+  labVersionId          String     @unique
+  problem               String
+  concept               String
+  uiNavigation          String
+  commands              Json
+  expectedOutput         String
+  whyItWorks            String
+  securityConsequence   String
+  verification          String
+  commonMistakes        String
+  troubleshooting       String
+  summary               String
+  labVersion            LabVersion @relation(fields: [labVersionId], references: [id], onDelete: Cascade)
+}
+
+model LabAttempt {
+  id              String          @id @default(cuid())
+  userId          String
+  labId           String
+  labVersionId    String
+  mode             LearningMode
+  status           AttemptStatus   @default(STARTED)
+  startedAt        DateTime        @default(now())
+  submittedAt      DateTime?
+  completedAt      DateTime?
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab              Lab             @relation(fields: [labId], references: [id], onDelete: Cascade)
+  labVersion       LabVersion      @relation(fields: [labVersionId], references: [id], onDelete: Restrict)
+  validationResult ValidationResult?
+
+  @@index([userId, labId, startedAt])
+  @@index([labId, status])
+}
+
+model LabProgress {
+  id              String         @id @default(cuid())
+  userId          String
+  labId           String
+  status          ProgressStatus @default(NOT_STARTED)
+  completionPct   Int            @default(0)
+  lastTaskPosition Int           @default(0)
+  startedAt       DateTime?
+  updatedAt       DateTime       @updatedAt
+  completedAt     DateTime?
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab             Lab            @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, labId])
+  @@index([userId, status])
+}
+
+model LabEnvironment {
+  id                String              @id @default(cuid())
+  userId            String
+  labId             String
+  labVersionId      String
+  environmentState  Json                @default("{}")
+  resourceInventory Json                @default("[]")
+  resetCount        Int                 @default(0)
+  startedAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  completedAt       DateTime?
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab               Lab                 @relation(fields: [labId], references: [id], onDelete: Cascade)
+  labVersion        LabVersion           @relation(fields: [labVersionId], references: [id], onDelete: Restrict)
+  resources         SimulatedResource[]
+
+  @@unique([userId, labId, labVersionId])
+  @@index([userId, updatedAt])
+}
+
+model SimulatedResource {
+  id            String           @id @default(cuid())
+  environmentId String
+  provider      ResourceProvider
+  resourceType  String
+  resourceKey   String
+  attributes    Json             @default("{}")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  environment   LabEnvironment   @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  @@unique([environmentId, resourceKey])
+  @@index([environmentId, provider, resourceType])
+}
+
+model TerminalHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  environmentId String?
+  command       String
+  exitCode      Int
+  outputSummary String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([environmentId, createdAt])
+}
+
+model QueryHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  environmentId String?
+  query         String
+  rowCount      Int      @default(0)
+  executionMs   Int      @default(0)
+  errorCode     String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([environmentId, createdAt])
+}
+
+model ValidationResult {
+  id        String     @id @default(cuid())
+  attemptId String     @unique
+  passed    Boolean
+  feedback  Json       @default("[]")
+  createdAt DateTime   @default(now())
+  attempt   LabAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+}
+
+model CompletionRecord {
+  id           String     @id @default(cuid())
+  userId       String
+  labId        String
+  labVersionId String
+  completedAt  DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab          Lab        @relation(fields: [labId], references: [id], onDelete: Restrict)
+  labVersion   LabVersion @relation(fields: [labVersionId], references: [id], onDelete: Restrict)
+  flag         Flag?
+
+  @@unique([userId, labId])
+  @@index([labId, completedAt])
+}
+
+model Flag {
+  id           String           @id @default(cuid())
+  userId       String
+  labId        String
+  completionId String           @unique
+  value        String           @unique
+  issuedAt     DateTime         @default(now())
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab          Lab              @relation(fields: [labId], references: [id], onDelete: Restrict)
+  completion   CompletionRecord @relation(fields: [completionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, labId])
+  @@index([issuedAt])
+}
+
+model Achievement {
+  id          String            @id @default(cuid())
+  key         String            @unique
+  name        String
+  description String
+  criteria    Json              @default("{}")
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  earnedAt      DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@index([earnedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
+
+model InstructorAssignment {
+  instructorId String
+  studentId    String
+  createdAt    DateTime @default(now())
+  instructor   User     @relation("Instructor", fields: [instructorId], references: [id], onDelete: Cascade)
+  student      User     @relation("AssignedStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([instructorId, studentId])
+  @@index([studentId])
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model OptionalCloudIntegration {
+  id                 String   @id @default(cuid())
+  userId             String
+  provider           String
+  displayName        String
+  enabled            Boolean  @default(false)
+  encryptedSecretRef String?
+  scopes             Json     @default("[]")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, provider])
+}
