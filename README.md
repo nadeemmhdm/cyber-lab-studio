@@ -4,7 +4,7 @@ CyberLab Studio Pro is a multi-user cybersecurity training platform for hands-on
 
 ## Current status
 
-Phases 1–5 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset, persisted task progress, cross-user isolation, and a native stateful AWS training simulator with tested CLI compatibility.
+Phases 1–7 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset, persisted progress/history, cross-user isolation, native AWS and Azure simulators, a KQL AST evaluator, Microsoft Sentinel detection/incident workflows, and Defender XDR investigation state built from shared synthetic security events.
 
 ## Stack
 
@@ -12,6 +12,9 @@ Phases 1–5 are implemented. The platform has a responsive Next.js UI, SQLite/P
 - Tailwind CSS
 - SQLite + Prisma ORM
 - Firebase Authentication + Firebase Admin session cookies
+- Native AWS and Azure state simulators
+- Native KQL parser/AST/evaluator
+- Shared Sentinel/Defender XDR synthetic security-event model
 - Zod validation
 - Vitest
 
@@ -29,22 +32,22 @@ Phases 1–5 are implemented. The platform has a responsive Next.js UI, SQLite/P
 
 No `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is required by CyberLab. Google identity is configured through Firebase Console.
 
-## AWS simulator
+## Simulator surfaces
 
-AWS labs run in a native CyberLab simulator. Supported commands mutate the authenticated student's persisted lab state; unsupported operations fail explicitly and are never sent to a host shell or real AWS account.
+AWS labs use the native CyberLab AWS CLI simulator; Azure labs use the native Azure CLI simulator. Sentinel, KQL, and Defender XDR labs use the shared security dataset and KQL engine.
 
 Examples:
 
 ```text
 aws sts get-caller-identity
-aws iam list-users
-aws ec2 describe-vpcs
 aws ec2 describe-security-groups
-aws s3api list-buckets
-aws securityhub get-findings
+az account show
+az network nsg list --resource-group cyberlab-rg
+SigninLogs | where RiskLevel == "high" | project TimeGenerated, UserPrincipalName, IPAddress
+DeviceProcessEvents | where ProcessCommandLine contains "powershell" | summarize Total=count() by DeviceName
 ```
 
-See `/docs/aws-compatibility` and `docs/AWS-SIMULATOR.md` for the tested subset.
+The native simulators never forward input to a host shell or real cloud account. Unsupported operations fail explicitly.
 
 ## Useful commands
 
@@ -64,6 +67,9 @@ npm run db:studio
 - Browser code never receives Firebase Admin credentials, database secrets, flag material, or real cloud credentials.
 - Authentication state for CyberLab is an HttpOnly server session cookie, not localStorage.
 - Simulator commands use registries and internal state only; host-shell execution is prohibited.
+- KQL executes only against stored synthetic training tables.
+- Sentinel analytics rules create alerts only from real KQL matches in the learner environment.
+- Defender XDR correlations reference the same stored event IDs used by KQL and Sentinel.
 - Lab validation and flag generation remain server-side.
 - Student lab environments are isolated by user + lab + version.
 - Unsupported simulator operations return explicit errors rather than fake success.
@@ -73,7 +79,11 @@ npm run db:studio
 - `docs/AUTHENTICATION.md` — Firebase identity/session design
 - `docs/ARCHITECTURE.md` — system boundaries
 - `docs/PHASE4.md` — lab-engine guarantees
-- `docs/AWS-SIMULATOR.md` — Phase 5 AWS simulator architecture and examples
+- `docs/AWS-SIMULATOR.md` — AWS simulator architecture
+- `docs/AZURE-SIMULATOR.md` — Azure simulator architecture
+- `docs/KQL-ENGINE.md` — KQL parser/evaluator architecture and subset
+- `docs/SECURITY-OPERATIONS.md` — Sentinel + Defender XDR shared investigation model
+- `docs/COMPATIBILITY.md` — implemented compatibility matrix
 - `docs/ROADMAP.md` — implementation phases
 - `SECURITY.md` — vulnerability reporting and security rules
 
