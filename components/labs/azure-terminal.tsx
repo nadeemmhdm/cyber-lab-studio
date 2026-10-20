@@ -40,7 +40,7 @@ export function AzureTerminal({ slug, initialHistory = [] }: { slug: string; ini
     <section className="overflow-hidden rounded-3xl border" style={{ borderColor: "var(--border)", background: "#07101d", color: "#d9eeff" }}>
       <div className="flex items-center justify-between border-b px-4 py-3 text-xs" style={{ borderColor: "#19324d" }}>
         <span className="font-semibold uppercase tracking-[0.16em]">CyberLab Azure CLI</span>
-        <span style={{ color: "#89a4bf" }}>simulator · no host shell</span>
+        <span style={{ color: "#89a4bf" }}>isolated lab · no host shell</span>
       </div>
       <div className="max-h-[520px] min-h-[260px] overflow-auto p-4 font-mono text-xs leading-6" aria-live="polite">
         {entries.length === 0 ? <p style={{ color: "#89a4bf" }}>Try: az account show</p> : null}
