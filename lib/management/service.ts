@@ -71,11 +71,27 @@ export async function updateUserAccess(actorId: string, userId: string, input: {
     const user = await tx.user.findUnique({ where: { id: userId }, include: { roles: { include: { role: true } } } });
     if (!user) throw new ManagementError("USER_NOT_FOUND", "User not found.", 404);
 
+    const currentRoles = user.roles.map((entry) => entry.role.key);
+    const currentAdmin = currentRoles.includes(RoleType.ADMIN);
+    const requestedRoles = input.roles ? [...new Set(input.roles)] : currentRoles;
+    const resultingAdmin = requestedRoles.includes(RoleType.ADMIN);
+
+    if (input.suspended === true && resultingAdmin) {
+      throw new ManagementError("ADMIN_SUSPEND_BLOCKED", "Administrator accounts are protected and cannot be suspended.", 409);
+    }
+    if (resultingAdmin && user.suspendedAt && input.suspended !== false) {
+      throw new ManagementError("ADMIN_MUST_BE_ACTIVE", "Restore this account before assigning the Administrator role.", 409);
+    }
+    if (currentAdmin && !resultingAdmin) {
+      const adminRole = await tx.role.findUnique({ where: { key: RoleType.ADMIN } });
+      const adminCount = adminRole ? await tx.userRole.count({ where: { roleId: adminRole.id } }) : 0;
+      if (adminCount <= 1) throw new ManagementError("LAST_ADMIN_PROTECTED", "The final Administrator account cannot be demoted.", 409);
+    }
+
     if (input.roles) {
-      const uniqueRoles = [...new Set(input.roles)];
-      if (!uniqueRoles.length) throw new ManagementError("ROLE_REQUIRED", "A user must retain at least one role.");
-      const roleRows = await tx.role.findMany({ where: { key: { in: uniqueRoles } } });
-      if (roleRows.length !== uniqueRoles.length) throw new ManagementError("ROLE_UNAVAILABLE", "One or more requested roles are unavailable.", 409);
+      if (!requestedRoles.length) throw new ManagementError("ROLE_REQUIRED", "A user must retain at least one role.");
+      const roleRows = await tx.role.findMany({ where: { key: { in: requestedRoles } } });
+      if (roleRows.length !== requestedRoles.length) throw new ManagementError("ROLE_UNAVAILABLE", "One or more requested roles are unavailable.", 409);
       await tx.userRole.deleteMany({ where: { userId } });
       await tx.userRole.createMany({ data: roleRows.map((role) => ({ userId, roleId: role.id })) });
     }
@@ -83,7 +99,7 @@ export async function updateUserAccess(actorId: string, userId: string, input: {
     if (typeof input.suspended === "boolean") {
       await tx.user.update({ where: { id: userId }, data: { suspendedAt: input.suspended ? new Date() : null } });
     }
-    await audit(tx, actorId, "management.user.access.updated", "User", userId, { roles: input.roles ?? user.roles.map((entry) => entry.role.key), suspended: input.suspended ?? Boolean(user.suspendedAt) });
+    await audit(tx, actorId, "management.user.access.updated", "User", userId, { roles: requestedRoles, suspended: input.suspended ?? Boolean(user.suspendedAt) });
     return tx.user.findUniqueOrThrow({ where: { id: userId }, include: { roles: { include: { role: true } } } });
   });
 }
