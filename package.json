@@ -1,6 +1,6 @@
 {
   "name": "cyber-lab-studio",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "engines": {
     "node": ">=24.12.0"
@@ -12,7 +12,11 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:watch": "vitest",
+    "release:check": "node scripts/release-check.mjs",
+    "backup": "node scripts/backup-sqlite.mjs",
+    "restore": "node scripts/restore-sqlite.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

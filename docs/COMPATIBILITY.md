@@ -216,3 +216,19 @@ See `docs/PHASE8-CONTENT.md`.
 | Validation audit events | Supported | pass/fail `AuditLog` entries |
 
 See `docs/PHASE9.md`.
+
+
+## Release platform compatibility
+
+| Surface | v1.0.0 status |
+| --- | --- |
+| Windows 10/11 + Node.js 24.12+ | Release setup/start scripts and Windows CI gate |
+| Ubuntu GitHub Actions | Full dependency/schema/lint/type/test/E2E/build gate |
+| SQLite + Prisma | Primary application state, clean-schema/seed/backup/restore workflow |
+| Firebase Email/Password + Google | Supported identity providers through Firebase configuration |
+| Firebase TOTP MFA | Supported enrollment and sign-in resolver flow |
+| Cloudflare Tunnel | Supported public HTTPS path for the web origin only |
+| Cloudflare Access | Recommended additional perimeter layer for privileged routes |
+| Public student self-signup | Disabled; Instructor enrollment links are the supported classroom onboarding path |
+
+The default v1.0.0 release does not forward learner cloud-style commands to a host shell and does not contact production AWS or Azure accounts.

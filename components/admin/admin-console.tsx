@@ -56,6 +56,12 @@ export function AdminConsole({ initialUsers, labs, initialControls }: { initialU
     }, suspended ? "User suspended." : "User restored.");
   }
 
+  async function resetPassword(userId: string) {
+    const password = window.prompt("Enter a new temporary password (minimum 10 characters). The user's active Firebase sessions will be revoked.");
+    if (!password) return;
+    await run(async () => { await patch(`/api/admin/users/${userId}/password`, { password }); }, "Password reset and active refresh tokens revoked.");
+  }
+
   return <div className="space-y-8">
     <section className="panel p-6">
       <p className="eyebrow">Platform controls</p><h2 className="mt-2 text-2xl font-semibold">Maintenance, quotas & learning policy</h2>
@@ -72,7 +78,7 @@ export function AdminConsole({ initialUsers, labs, initialControls }: { initialU
       <button className="button-primary mt-5" onClick={saveControls}>Save platform controls</button>
     </section>
 
-    <section className="panel p-6"><p className="eyebrow">Accounts</p><h2 className="mt-2 text-2xl font-semibold">User, role & suspension management</h2><div className="mt-5 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">User</th><th className="p-2">Role</th><th className="p-2">Status</th><th className="p-2">Action</th></tr></thead><tbody>{users.map((user) => <tr key={user.id} className="border-t" style={{ borderColor: "var(--border)" }}><td className="p-2"><strong>{user.displayName}</strong><div className="muted">{user.email}</div></td><td className="p-2"><select className="input" value={user.roles[0]} onChange={(e) => setUserRole(user.id, e.target.value as RoleType)}>{["STUDENT","INSTRUCTOR","ADMIN"].map((role) => <option key={role}>{role}</option>)}</select></td><td className="p-2">{user.suspended ? "Suspended" : "Active"}</td><td className="p-2"><button className="button-secondary" onClick={() => toggleSuspended(user.id, !user.suspended)}>{user.suspended ? "Restore" : "Suspend"}</button></td></tr>)}</tbody></table></div></section>
+    <section className="panel p-6"><p className="eyebrow">Accounts</p><h2 className="mt-2 text-2xl font-semibold">User, role, suspension & password management</h2><div className="mt-5 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="p-2">User</th><th className="p-2">Role</th><th className="p-2">Status</th><th className="p-2">Actions</th></tr></thead><tbody>{users.map((user) => <tr key={user.id} className="border-t" style={{ borderColor: "var(--border)" }}><td className="p-2"><strong>{user.displayName}</strong><div className="muted">{user.email}</div></td><td className="p-2"><select className="input" value={user.roles[0]} onChange={(e) => setUserRole(user.id, e.target.value as RoleType)}>{["STUDENT","INSTRUCTOR","ADMIN"].map((role) => <option key={role}>{role}</option>)}</select></td><td className="p-2">{user.suspended ? "Suspended" : "Active"}</td><td className="p-2"><div className="flex flex-wrap gap-2"><button className="button-secondary" onClick={() => toggleSuspended(user.id, !user.suspended)}>{user.suspended ? "Restore" : "Suspend"}</button><button className="button-secondary" onClick={() => resetPassword(user.id)}>Reset password</button></div></td></tr>)}</tbody></table></div></section>
 
     <section className="panel p-6"><p className="eyebrow">Curriculum</p><h2 className="mt-2 text-2xl font-semibold">Lab, version, hint & solution management</h2><div className="mt-5 space-y-3">{labs.map((lab) => <LabEditor key={lab.id} lab={lab} onMessage={(text, error) => { setTone(error ? "error" : "success"); setMessage(text); }} />)}</div></section>
     <FeedbackToast message={message} tone={tone} />
