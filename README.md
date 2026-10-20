@@ -4,7 +4,9 @@ CyberLab Studio Pro is a multi-user cybersecurity training platform for hands-on
 
 ## Current status
 
-Phases 1–7 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset, persisted progress/history, cross-user isolation, native AWS and Azure simulators, a KQL AST evaluator, Microsoft Sentinel detection/incident workflows, and Defender XDR investigation state built from shared synthetic security events.
+Phases 1–8 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset, persisted progress/history, cross-user isolation, native AWS and Azure simulators, a KQL AST evaluator, Microsoft Sentinel detection/incident workflows, Defender XDR investigation state built from shared synthetic security events, and complete Version 2 educational curriculum for all 30 labs with tasks, three-level hints, explained solutions, expected evidence, verification, common mistakes, and troubleshooting.
+
+The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and blocks on `npm audit --audit-level=moderate`.
 
 ## Stack
 
@@ -15,6 +17,7 @@ Phases 1–7 are implemented. The platform has a responsive Next.js UI, SQLite/P
 - Native AWS and Azure state simulators
 - Native KQL parser/AST/evaluator
 - Shared Sentinel/Defender XDR synthetic security-event model
+- Versioned 30-lab educational content registry
 - Zod validation
 - Vitest
 
@@ -24,9 +27,9 @@ Phases 1–7 are implemented. The platform has a responsive Next.js UI, SQLite/P
 2. Create a Firebase project and enable Email/Password and Google providers in Firebase Authentication.
 3. Add your local/production hostnames to Firebase Authorized domains.
 4. Copy `.env.example` to `.env` and provide the Firebase Web + Admin values.
-5. Install dependencies: `npm install`.
+5. Install the locked dependency graph: `npm ci`.
 6. Create/update SQLite schema: `npx prisma db push`.
-7. Seed labs and deterministic simulator state: `npm run db:seed`.
+7. Seed labs, simulator state, and Phase 8 Version 2 curriculum: `npm run db:seed`.
 8. Start development: `npm run dev`.
 9. Open `http://localhost:3000`.
 
@@ -49,9 +52,19 @@ DeviceProcessEvents | where ProcessCommandLine contains "powershell" | summarize
 
 The native simulators never forward input to a host shell or real cloud account. Unsupported operations fail explicitly.
 
+## Educational modes
+
+- **Guided** — concepts, tasks, three progressive hints, and the full educational solution are available.
+- **Practice** — keeps the curriculum and solution available while learners perform the real simulator/query workflow themselves.
+- **Challenge** — hides concepts, hints, and solutions according to the lab-mode policy.
+
+Opening a hint or solution never grants completion. Server-side validation remains authoritative for completion and flags.
+
 ## Useful commands
 
 ```bash
+npm ci
+npm audit --audit-level=moderate
 npm run dev
 npm run lint
 npm run typecheck
@@ -72,7 +85,9 @@ npm run db:studio
 - Defender XDR correlations reference the same stored event IDs used by KQL and Sentinel.
 - Lab validation and flag generation remain server-side.
 - Student lab environments are isolated by user + lab + version.
+- Educational hints/solutions do not contain flags or hidden validator internals.
 - Unsupported simulator operations return explicit errors rather than fake success.
+- CI audits the locked npm dependency graph and fails on moderate-or-higher findings.
 
 ## Documentation
 
@@ -83,6 +98,7 @@ npm run db:studio
 - `docs/AZURE-SIMULATOR.md` — Azure simulator architecture
 - `docs/KQL-ENGINE.md` — KQL parser/evaluator architecture and subset
 - `docs/SECURITY-OPERATIONS.md` — Sentinel + Defender XDR shared investigation model
+- `docs/PHASE8-CONTENT.md` — Version 2 educational content architecture
 - `docs/COMPATIBILITY.md` — implemented compatibility matrix
 - `docs/ROADMAP.md` — implementation phases
 - `SECURITY.md` — vulnerability reporting and security rules
