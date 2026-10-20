@@ -58,14 +58,12 @@ model User {
   id String @id @default(cuid())
   firebaseUid String? @unique
   email String @unique
-  passwordHash String?
   displayName String
   emailVerifiedAt DateTime?
   suspendedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   roles UserRole[]
-  sessions Session[]
   attempts LabAttempt[]
   progress LabProgress[]
   environments LabEnvironment[]
@@ -111,19 +109,6 @@ model RolePermission {
   permission Permission @relation(fields:[permissionId], references:[id], onDelete:Cascade)
   @@id([roleId, permissionId])
   @@index([permissionId])
-}
-model Session {
-  id String @id @default(cuid())
-  userId String
-  tokenHash String @unique
-  userAgent String?
-  ipHash String?
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  revokedAt DateTime?
-  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
-  @@index([userId, expiresAt])
-  @@index([expiresAt])
 }
 model Course {
   id String @id @default(cuid())
