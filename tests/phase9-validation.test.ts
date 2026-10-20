@@ -3,7 +3,7 @@ import { LearningMode, ProgressStatus } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getLabEducationalContent } from "@/lib/labs/content";
 import { submitLabForValidation } from "@/lib/labs/completion";
-import { recordTaskProgress, startLab } from "@/lib/labs/engine";
+import { recordTaskProgress, resetLab, startLab } from "@/lib/labs/engine";
 import { LAB_VALIDATOR_REGISTRY } from "@/lib/labs/validators";
 import { prisma } from "@/lib/prisma";
 import { executePersistedAwsCommand } from "@/lib/simulators/aws/persistence";
@@ -87,6 +87,14 @@ describe("Phase 9 validation, flags, and achievements", () => {
     const again = await submitLabForValidation(userA, "aws-iam-users-roles");
     expect(again.flag).toBe(result.flag);
     expect(await prisma.flag.count({ where: { userId: userA, labId: lab.id } })).toBe(1);
+  });
+
+  it("locks verified labs against restart, reset, task writes, and simulator mutation", async () => {
+    const environment = await prisma.labEnvironment.findFirstOrThrow({ where: { userId: userA, lab: { slug: "aws-iam-users-roles" } } });
+    await expect(startLab(userA, "aws-iam-users-roles", LearningMode.GUIDED)).rejects.toMatchObject({ code: "LAB_ALREADY_COMPLETED" });
+    await expect(resetLab(userA, "aws-iam-users-roles")).rejects.toMatchObject({ code: "LAB_ALREADY_COMPLETED" });
+    await expect(recordTaskProgress(userA, "aws-iam-users-roles", 4)).rejects.toMatchObject({ code: "LAB_ALREADY_COMPLETED" });
+    await expect(executePersistedAwsCommand(userA, environment.id, "aws sts get-caller-identity")).rejects.toMatchObject({ code: "LAB_ALREADY_COMPLETED" });
   });
 
   it("issues different cryptographic flags to different students for the same lab", async () => {
