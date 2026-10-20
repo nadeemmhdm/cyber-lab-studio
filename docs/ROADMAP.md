@@ -69,11 +69,11 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 7 — Sentinel, KQL, Defender XDR
 
-- [ ] KQL lexer/parser/AST/evaluator/type checks
-- [ ] Synthetic datasets
-- [ ] Sentinel ingestion, detections, alerts, incidents
-- [ ] Defender incidents, devices, identities, processes, timelines
-- [ ] Shared security-event model
+- [x] KQL lexer/parser/AST/evaluator/type checks
+- [x] Synthetic datasets
+- [x] Sentinel ingestion, detections, alerts, incidents
+- [x] Defender incidents, devices, identities, processes, timelines
+- [x] Shared security-event model
 
 ## Phase 8 — Complete educational content
 
