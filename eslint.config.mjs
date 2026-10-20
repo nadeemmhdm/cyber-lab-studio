@@ -17,5 +17,11 @@ export default defineConfig([
       "no-undef": "off",
     },
   },
+  {
+    files: ["lib/simulators/aws/engine.ts"],
+    rules: {
+      "no-useless-escape": "off",
+    },
+  },
   globalIgnores([".next/**", "node_modules/**", "coverage/**"]),
 ]);
