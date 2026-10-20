@@ -76,7 +76,7 @@ export function LabWorkspaceControls({
   }
 
   async function reset() {
-    if (!window.confirm("Reset this lab to its deterministic starting state? Simulator changes will be discarded, but an already verified completion remains earned.")) return;
+    if (!window.confirm("Reset this lab to its deterministic starting state? Your simulator changes and task progress will be discarded.")) return;
     setBusy(true);
     setMessage("");
     try {
@@ -127,7 +127,7 @@ export function LabWorkspaceControls({
         {flag ? <div className="mt-4 rounded-xl border p-3" style={{ borderColor: "var(--border)" }}><p className="text-xs font-semibold uppercase tracking-[0.14em] muted">Completion flag</p><code className="mt-2 block break-all text-sm">{flag}</code></div> : null}
       </div>
 
-      <button className="button-secondary w-full" type="button" onClick={reset} disabled={busy}>Reset environment</button>
+      <button className="button-secondary w-full" type="button" onClick={reset} disabled={busy || verified}>{verified ? "Verified lab locked" : "Reset environment"}</button>
       <FeedbackToast message={message} tone={tone} />
     </div>
   );
