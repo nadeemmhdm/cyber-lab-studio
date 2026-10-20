@@ -68,11 +68,11 @@ Set-Location $InstallDir
 if (-not (Test-Path ".\cyberlab.ps1")) { throw "cyberlab.ps1 is missing after clone/update." }
 
 if ($fresh -or -not (Test-Path ".env")) {
-  Write-Step "Starting first-time CyberLab setup"
-  & powershell -NoProfile -ExecutionPolicy Bypass -File ".\cyberlab.ps1" setup
+  Write-Step "Starting complete first-time setup"
+  & powershell -NoProfile -ExecutionPolicy Bypass -File ".\cyberlab.ps1" install
 } else {
-  Write-Step "Running CyberLab updater"
-  & powershell -NoProfile -ExecutionPolicy Bypass -File ".\cyberlab.ps1" update
+  Write-Step "Checking packages, security audit, database and updates"
+  & powershell -NoProfile -ExecutionPolicy Bypass -File ".\cyberlab.ps1" install --maintenance
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
   Write-Step "Opening CyberLab management menu"
   & powershell -NoProfile -ExecutionPolicy Bypass -File ".\cyberlab.ps1"
