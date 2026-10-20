@@ -53,7 +53,8 @@ export async function readJsonLimited(request: Request, maxBytes: number): Promi
 }
 
 export function requestGuardResponse(error: RequestGuardError) {
-  const headers = error.retryAfter ? { "Retry-After": String(error.retryAfter), "Cache-Control": "no-store" } : { "Cache-Control": "no-store" };
+  const headers = new Headers({ "Cache-Control": "no-store" });
+  if (error.retryAfter) headers.set("Retry-After", String(error.retryAfter));
   return Response.json({ error: error.message, code: error.code }, { status: error.status, headers });
 }
 
