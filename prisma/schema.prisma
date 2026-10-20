@@ -54,6 +54,19 @@ enum ResourceProvider {
   INTERNAL
 }
 
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
 model User {
   id String @id @default(cuid())
   firebaseUid String? @unique
@@ -76,6 +89,8 @@ model User {
   instructorLinks InstructorAssignment[] @relation("Instructor")
   studentLinks InstructorAssignment[] @relation("AssignedStudent")
   cloudIntegrations OptionalCloudIntegration[]
+  supportTickets SupportTicket[] @relation("SupportRequester")
+  supportReplies SupportReply[] @relation("SupportAuthor")
   @@index([createdAt])
   @@index([suspendedAt])
 }
@@ -88,12 +103,14 @@ model Role {
   users UserRole[]
   permissions RolePermission[]
 }
+
 model Permission {
   id String @id @default(cuid())
   key String @unique
   description String?
   roles RolePermission[]
 }
+
 model UserRole {
   userId String
   roleId String
@@ -102,6 +119,7 @@ model UserRole {
   @@id([userId, roleId])
   @@index([roleId])
 }
+
 model RolePermission {
   roleId String
   permissionId String
@@ -110,6 +128,7 @@ model RolePermission {
   @@id([roleId, permissionId])
   @@index([permissionId])
 }
+
 model Course {
   id String @id @default(cuid())
   slug String @unique
@@ -120,6 +139,7 @@ model Course {
   updatedAt DateTime @updatedAt
   modules Module[]
 }
+
 model Module {
   id String @id @default(cuid())
   courseId String
@@ -133,6 +153,7 @@ model Module {
   @@unique([courseId, position])
   @@index([courseId])
 }
+
 model Lab {
   id String @id @default(cuid())
   moduleId String?
@@ -157,6 +178,7 @@ model Lab {
   @@index([platform, difficulty])
   @@index([enabled, number])
 }
+
 model LabVersion {
   id String @id @default(cuid())
   labId String
@@ -180,6 +202,7 @@ model LabVersion {
   @@unique([labId, version])
   @@index([labId, published])
 }
+
 model LabTask {
   id String @id @default(cuid())
   labVersionId String
@@ -190,6 +213,7 @@ model LabTask {
   labVersion LabVersion @relation(fields:[labVersionId], references:[id], onDelete:Cascade)
   @@unique([labVersionId, position])
 }
+
 model LabHint {
   id String @id @default(cuid())
   labVersionId String
@@ -198,6 +222,7 @@ model LabHint {
   labVersion LabVersion @relation(fields:[labVersionId], references:[id], onDelete:Cascade)
   @@unique([labVersionId, level])
 }
+
 model LabSolution {
   id String @id @default(cuid())
   labVersionId String @unique
@@ -214,6 +239,7 @@ model LabSolution {
   summary String
   labVersion LabVersion @relation(fields:[labVersionId], references:[id], onDelete:Cascade)
 }
+
 model LabAttempt {
   id String @id @default(cuid())
   userId String
@@ -231,6 +257,7 @@ model LabAttempt {
   @@index([userId, labId, startedAt])
   @@index([labId, status])
 }
+
 model LabProgress {
   id String @id @default(cuid())
   userId String
@@ -246,6 +273,7 @@ model LabProgress {
   @@unique([userId, labId])
   @@index([userId, status])
 }
+
 model LabEnvironment {
   id String @id @default(cuid())
   userId String
@@ -264,6 +292,7 @@ model LabEnvironment {
   @@unique([userId, labId, labVersionId])
   @@index([userId, updatedAt])
 }
+
 model SimulatedResource {
   id String @id @default(cuid())
   environmentId String
@@ -277,6 +306,7 @@ model SimulatedResource {
   @@unique([environmentId, resourceKey])
   @@index([environmentId, provider, resourceType])
 }
+
 model TerminalHistory {
   id String @id @default(cuid())
   userId String
@@ -289,6 +319,7 @@ model TerminalHistory {
   @@index([userId, createdAt])
   @@index([environmentId, createdAt])
 }
+
 model QueryHistory {
   id String @id @default(cuid())
   userId String
@@ -302,6 +333,7 @@ model QueryHistory {
   @@index([userId, createdAt])
   @@index([environmentId, createdAt])
 }
+
 model ValidationResult {
   id String @id @default(cuid())
   attemptId String @unique
@@ -310,6 +342,7 @@ model ValidationResult {
   createdAt DateTime @default(now())
   attempt LabAttempt @relation(fields:[attemptId], references:[id], onDelete:Cascade)
 }
+
 model CompletionRecord {
   id String @id @default(cuid())
   userId String
@@ -323,6 +356,7 @@ model CompletionRecord {
   @@unique([userId, labId])
   @@index([labId, completedAt])
 }
+
 model Flag {
   id String @id @default(cuid())
   userId String
@@ -336,6 +370,7 @@ model Flag {
   @@unique([userId, labId])
   @@index([issuedAt])
 }
+
 model Achievement {
   id String @id @default(cuid())
   key String @unique
@@ -344,6 +379,7 @@ model Achievement {
   criteria Json
   users UserAchievement[]
 }
+
 model UserAchievement {
   userId String
   achievementId String
@@ -353,6 +389,7 @@ model UserAchievement {
   @@id([userId, achievementId])
   @@index([earnedAt])
 }
+
 model AuditLog {
   id String @id @default(cuid())
   actorId String?
@@ -365,6 +402,7 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
 }
+
 model InstructorAssignment {
   instructorId String
   studentId String
@@ -374,11 +412,13 @@ model InstructorAssignment {
   @@id([instructorId, studentId])
   @@index([studentId])
 }
+
 model PlatformSetting {
   key String @id
   value Json
   updatedAt DateTime @updatedAt
 }
+
 model OptionalCloudIntegration {
   id String @id @default(cuid())
   userId String
@@ -391,4 +431,32 @@ model OptionalCloudIntegration {
   updatedAt DateTime @updatedAt
   user User @relation(fields:[userId], references:[id], onDelete:Cascade)
   @@index([userId, provider])
+}
+
+model SupportTicket {
+  id String @id @default(cuid())
+  userId String
+  subject String
+  category String
+  priority SupportTicketPriority @default(NORMAL)
+  status SupportTicketStatus @default(OPEN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation("SupportRequester", fields:[userId], references:[id], onDelete:Cascade)
+  replies SupportReply[]
+  @@index([userId, updatedAt])
+  @@index([status, updatedAt])
+}
+
+model SupportReply {
+  id String @id @default(cuid())
+  ticketId String
+  authorId String
+  message String
+  isAdminReply Boolean @default(false)
+  createdAt DateTime @default(now())
+  ticket SupportTicket @relation(fields:[ticketId], references:[id], onDelete:Cascade)
+  author User @relation("SupportAuthor", fields:[authorId], references:[id], onDelete:Cascade)
+  @@index([ticketId, createdAt])
+  @@index([authorId, createdAt])
 }
