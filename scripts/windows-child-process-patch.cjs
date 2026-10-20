@@ -17,9 +17,6 @@ if (process.platform === 'win32') {
   }
 
   function wrap(command, args = []) {
-    // npm.cmd/npx.cmd are command names supplied by repository code. Do not quote
-    // the command token itself; cmd.exe would treat embedded quotes as part of the
-    // executable name. Quote only arguments that actually require it.
     const line = [command, ...args.map(quoteArg)].join(' ');
     return [comspec, ['/d', '/c', line]];
   }
@@ -46,7 +43,5 @@ if (process.platform === 'win32') {
     return originalSpawn.apply(childProcess, arguments);
   };
 
-  // remote-setup.mjs imports named bindings from node:child_process.
-  // Synchronize those ESM bindings with the patched CommonJS exports.
   syncBuiltinESMExports();
 }
