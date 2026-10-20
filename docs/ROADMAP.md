@@ -89,10 +89,10 @@ The repository follows the product build specification in twelve implementation 
 
 - [x] Cryptographically secure flag primitive
 - [x] Database uniqueness constraints
-- [ ] Validator registry for every lab
-- [ ] Transactional completion service
-- [ ] Achievement evaluation
-- [ ] Hidden-validation leakage tests
+- [x] Validator registry for every lab
+- [x] Transactional completion service
+- [x] Achievement evaluation
+- [x] Hidden-validation leakage tests
 
 ## Phase 10 — Instructor and admin
 
