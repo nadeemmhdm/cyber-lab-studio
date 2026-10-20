@@ -225,6 +225,7 @@ See [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) and [`SECURITY.md`](SECURITY.
 - [`CURRICULUM.md`](docs/CURRICULUM.md) — all 30 labs, modes, tasks, hints, and solutions.
 - [`VALIDATION-AND-ACHIEVEMENTS.md`](docs/VALIDATION-AND-ACHIEVEMENTS.md) — validators, completion, flags, and achievements.
 - [`ACCOUNT-ONBOARDING.md`](docs/ACCOUNT-ONBOARDING.md) — first admin, instructor provisioning, enrollment links, username login, cooldowns, and TOTP MFA.
+- [`ACCOUNT-ONBOARDING.md`](docs/ACCOUNT-ONBOARDING.md) — first admin, instructor provisioning, enrollment links, username login, cooldowns, and TOTP MFA.
 - [`MANAGEMENT.md`](docs/MANAGEMENT.md) — instructor, admin, enrollment, and support management.
 - [`PLATFORM-HARDENING.md`](docs/PLATFORM-HARDENING.md) — security, performance, and accessibility controls.
 - [`COMPATIBILITY.md`](docs/COMPATIBILITY.md) — implemented command/workflow matrix.

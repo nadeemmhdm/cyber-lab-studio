@@ -34,6 +34,7 @@ Use this checklist for CyberLab Studio Pro v1.0.0 and future releases.
 - [ ] Server validation is required for 100%, flags, and achievements.
 - [ ] Support report/reply/status workflow works for learner and administrator views.
 - [ ] Per-lab Ask a Doubt screenshot/chat works between a Student and assigned Instructor.
+- [ ] Per-lab Ask a Doubt screenshot/chat works between a Student and assigned Instructor.
 
 ## Security and operations
 
