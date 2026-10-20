@@ -1,0 +1,67 @@
+name: Finalize Release Assets
+
+on:
+  push:
+    branches: [phase-12-release]
+    paths:
+      - scripts/generate-lab-manual.py
+      - scripts/generate-release-deck.py
+      - scripts/finalize-release.mjs
+      - .github/workflows/finalize-release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: phase-12-release
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.12.0
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Export authoritative curriculum
+        run: npx tsx scripts/export-manual-data.ts lab-manual-data.json
+
+      - name: Install document generators
+        run: python -m pip install --disable-pip-version-check python-docx python-pptx
+
+      - name: Generate DOCX and PPTX release artifacts
+        run: |
+          mkdir -p docs/artifacts
+          python scripts/generate-lab-manual.py lab-manual-data.json docs/artifacts
+          python scripts/generate-release-deck.py lab-manual-data.json docs/artifacts
+
+      - name: Apply repository finalization
+        run: node scripts/finalize-release.mjs
+
+      - name: Commit generated release
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Release branch already finalized."
+            exit 0
+          fi
+          git commit -m "release: finalize CyberLab Studio Pro v1.0.0"
+          git push origin HEAD:phase-12-release
