@@ -29,6 +29,7 @@ async function main() {
         difficulty: lab.difficulty as Difficulty,
         estimatedMinutes: lab.estimatedMinutes,
         enabled: true,
+        prerequisiteIds: [],
       },
       create: {
         number: lab.number,
@@ -39,6 +40,7 @@ async function main() {
         difficulty: lab.difficulty as Difficulty,
         estimatedMinutes: lab.estimatedMinutes,
         enabled: true,
+        prerequisiteIds: [],
       },
     });
   }
