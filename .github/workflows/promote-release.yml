@@ -1,46 +1,16 @@
-name: Promote Release to Main
+name: Promote Release to Main (Manual)
 
 on:
-  push:
-    branches: [phase-12-release]
-    paths:
-      - .github/workflows/promote-release.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
-  create-promotion-pr:
+  release-already-promoted:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - name: Checkout verified release
-        uses: actions/checkout@v4
-        with:
-          ref: phase-12-release
-          fetch-depth: 0
-
-      - name: Create bot-owned promotion branch
-        shell: bash
+      - name: Release status
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B phase-12-promote
-          git push origin HEAD:refs/heads/phase-12-promote --force
-
-      - name: Create promotion pull request
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          existing="$(gh pr list --head phase-12-promote --base main --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$existing" ]; then
-            echo "Promotion PR already exists: #$existing"
-            exit 0
-          fi
-          gh pr create \
-            --base main \
-            --head phase-12-promote \
-            --title "Promote verified CyberLab Studio Pro v1.0.0" \
-            --body "Bot-authored promotion PR for the verified Phase 12 release. Source release CI run 39409709711 passed on Linux and Windows, including two-user isolation E2E, release structure checks, and production builds. This PR exists so the protected main branch's independent approval rule can be satisfied without bypassing protection."
+          echo "CyberLab Studio Pro v1.0.0 is already promoted to main."
+          echo "This workflow is retained for manual release-maintenance only."
