@@ -8,6 +8,10 @@ export class ManagementError extends Error {
   }
 }
 
+function cloneInputJson(value: Prisma.JsonValue): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
 export async function assignInstructor(actorId: string, instructorId: string, studentId: string) {
   if (instructorId === studentId) throw new ManagementError("INVALID_ASSIGNMENT", "Instructor and student must be different users.");
   return prisma.$transaction(async (tx) => {
@@ -54,24 +58,10 @@ export async function setUserSuspended(actorId: string, targetUserId: string, su
 
 export async function listInstructorStudents(instructorId: string) {
   const assignments = await prisma.instructorAssignment.findMany({
-    where: { instructorId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      student: {
-        select: {
-          id: true, email: true, displayName: true, suspendedAt: true,
-          progress: { include: { lab: { select: { number: true, title: true, slug: true } } }, orderBy: { updatedAt: "desc" } },
-          completions: { select: { id: true } },
-        },
-      },
-    },
+    where: { instructorId }, orderBy: { createdAt: "desc" },
+    include: { student: { select: { id: true, email: true, displayName: true, suspendedAt: true, progress: { include: { lab: { select: { number: true, title: true, slug: true } } }, orderBy: { updatedAt: "desc" } }, completions: { select: { id: true } } } } },
   });
-  return assignments.map(({ student, createdAt }) => ({
-    ...student,
-    assignedAt: createdAt,
-    completedLabs: student.completions.length,
-    inProgressLabs: student.progress.filter((entry) => entry.status === ProgressStatus.IN_PROGRESS).length,
-  }));
+  return assignments.map(({ student, createdAt }) => ({ ...student, assignedAt: createdAt, completedLabs: student.completions.length, inProgressLabs: student.progress.filter((entry) => entry.status === ProgressStatus.IN_PROGRESS).length }));
 }
 
 export async function updateLabMetadata(actorId: string, slug: string, input: { enabled?: boolean; title?: string; objective?: string; estimatedMinutes?: number }) {
@@ -92,19 +82,12 @@ export async function updatePublishedCurriculum(actorId: string, slug: string, i
     const lab = await tx.lab.findUnique({ where: { slug }, include: { versions: { where: { published: true }, orderBy: { version: "desc" }, take: 1, include: { hints: true, solution: true } } } });
     const version = lab?.versions[0];
     if (!lab || !version) throw new ManagementError("LAB_VERSION_UNAVAILABLE", "Published lab version not found.", 404);
-    await tx.labVersion.update({ where: { id: version.id }, data: {
-      ...(input.conceptExplanation !== undefined ? { conceptExplanation: input.conceptExplanation.trim().slice(0, 12000) } : {}),
-      ...(input.scenario !== undefined ? { scenario: input.scenario.trim().slice(0, 8000) } : {}),
-    } });
+    await tx.labVersion.update({ where: { id: version.id }, data: { ...(input.conceptExplanation !== undefined ? { conceptExplanation: input.conceptExplanation.trim().slice(0, 12000) } : {}), ...(input.scenario !== undefined ? { scenario: input.scenario.trim().slice(0, 8000) } : {}) } });
     if (input.hints) {
       if (input.hints.length !== 3 || input.hints.some((hint) => !hint.trim())) throw new ManagementError("INVALID_HINTS", "Exactly three non-empty hints are required.");
-      for (let index = 0; index < 3; index += 1) {
-        await tx.labHint.upsert({ where: { labVersionId_level: { labVersionId: version.id, level: index + 1 } }, update: { content: input.hints[index].trim().slice(0, 4000) }, create: { labVersionId: version.id, level: index + 1, content: input.hints[index].trim().slice(0, 4000) } });
-      }
+      for (let index = 0; index < 3; index += 1) await tx.labHint.upsert({ where: { labVersionId_level: { labVersionId: version.id, level: index + 1 } }, update: { content: input.hints[index].trim().slice(0, 4000) }, create: { labVersionId: version.id, level: index + 1, content: input.hints[index].trim().slice(0, 4000) } });
     }
-    if (input.solutionSummary !== undefined && version.solution) {
-      await tx.labSolution.update({ where: { labVersionId: version.id }, data: { summary: input.solutionSummary.trim().slice(0, 8000) } });
-    }
+    if (input.solutionSummary !== undefined && version.solution) await tx.labSolution.update({ where: { labVersionId: version.id }, data: { summary: input.solutionSummary.trim().slice(0, 8000) } });
     await tx.auditLog.create({ data: { actorId, action: "ADMIN_CURRICULUM_UPDATED", targetType: "LabVersion", targetId: version.id, metadata: { slug, fields: Object.keys(input) } } });
     return version.id;
   });
@@ -118,11 +101,11 @@ export async function createLabVersion(actorId: string, slug: string) {
     const nextVersion = source.version + 1;
     const version = await tx.labVersion.create({ data: {
       labId: lab.id, version: nextVersion, published: false, conceptExplanation: source.conceptExplanation, scenario: source.scenario,
-      prerequisites: source.prerequisites, supportedCommands: source.supportedCommands, supportedUi: source.supportedUi, initialState: source.initialState, validationConfig: source.validationConfig,
+      prerequisites: cloneInputJson(source.prerequisites), supportedCommands: cloneInputJson(source.supportedCommands), supportedUi: cloneInputJson(source.supportedUi), initialState: cloneInputJson(source.initialState), validationConfig: cloneInputJson(source.validationConfig),
     } });
     if (source.tasks.length) await tx.labTask.createMany({ data: source.tasks.map((task) => ({ labVersionId: version.id, position: task.position, title: task.title, instruction: task.instruction, validatorKey: task.validatorKey })) });
     if (source.hints.length) await tx.labHint.createMany({ data: source.hints.map((hint) => ({ labVersionId: version.id, level: hint.level, content: hint.content })) });
-    if (source.solution) await tx.labSolution.create({ data: { labVersionId: version.id, problem: source.solution.problem, concept: source.solution.concept, uiNavigation: source.solution.uiNavigation, commands: source.solution.commands, expectedOutput: source.solution.expectedOutput, whyItWorks: source.solution.whyItWorks, securityConsequence: source.solution.securityConsequence, verification: source.solution.verification, commonMistakes: source.solution.commonMistakes, troubleshooting: source.solution.troubleshooting, summary: source.solution.summary } });
+    if (source.solution) await tx.labSolution.create({ data: { labVersionId: version.id, problem: source.solution.problem, concept: source.solution.concept, uiNavigation: source.solution.uiNavigation, commands: cloneInputJson(source.solution.commands), expectedOutput: source.solution.expectedOutput, whyItWorks: source.solution.whyItWorks, securityConsequence: source.solution.securityConsequence, verification: source.solution.verification, commonMistakes: source.solution.commonMistakes, troubleshooting: source.solution.troubleshooting, summary: source.solution.summary } });
     await tx.auditLog.create({ data: { actorId, action: "ADMIN_LAB_VERSION_CREATED", targetType: "LabVersion", targetId: version.id, metadata: { slug, version: nextVersion } } });
     return version;
   });
