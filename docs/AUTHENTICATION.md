@@ -1,39 +1,45 @@
 # Authentication and RBAC
 
-CyberLab Studio Pro uses database-backed opaque sessions and server-side authorization.
+CyberLab Studio Pro uses Firebase Authentication for identity and SQLite/Prisma for application users, roles, authorization, progress, and simulator state.
 
-## Password authentication
+## Supported sign-in methods
 
-- Passwords are hashed with Argon2id.
-- Registration assigns the Student role on the server.
-- Password login is blocked until the email is verified.
-- Suspended users cannot establish a session.
-- Authentication cookies are HttpOnly, SameSite=Lax, Secure in production, and expire after seven days.
-- Only SHA-256 hashes of session tokens are stored in PostgreSQL.
+- Email/password signup and sign-in through Firebase Authentication.
+- Firebase email-verification links before CyberLab creates an application session.
+- Firebase password-reset email links.
+- Google sign-in through the Firebase Web SDK `GoogleAuthProvider` popup flow.
 
-## Email verification and password reset
+CyberLab does **not** implement a separate Google OAuth client flow and does not use `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` environment variables. Enable Google and Email/Password providers in the Firebase Console instead.
 
-Verification links expire after 24 hours. Password-reset links expire after 30 minutes. Raw tokens are sent to the user but never persisted; PostgreSQL stores only token hashes in `PlatformSetting` records. Consuming a token deletes it so it cannot be reused.
+## Server sessions
 
-Set `RESEND_API_KEY` and `AUTH_EMAIL_FROM` for real email delivery. In non-production environments the link is also logged/returned for local testing.
+The browser signs in with Firebase using in-memory persistence. A verified Firebase ID token is exchanged at `/api/auth/session` for a Firebase Admin session cookie.
 
-## Brute-force protection
+- The application cookie is HttpOnly, SameSite=Lax, and Secure in production.
+- Session creation requires a recent Firebase sign-in and a double-submit CSRF token issued by `/api/auth/csrf`.
+- Server Components and API routes verify the Firebase session cookie with Firebase Admin before loading the matching SQLite application user.
+- The browser signs out of the Firebase client immediately after the server session is established, so localStorage is not used as CyberLab authentication state.
+- `Sign out everywhere` revokes Firebase refresh tokens and clears the current HttpOnly cookie.
 
-Registration, login, verification resend, and password-reset endpoints use PostgreSQL-backed rate windows keyed by HMAC-hashed IP/email identifiers. Successful password login clears its login throttle record.
+## Application user and RBAC synchronization
 
-## RBAC
+After Firebase verifies a user, CyberLab synchronizes the Firebase UID, verified email, and display name into the local `User` row. New users receive the Student role server-side. `UserRole -> Role` remains the source of truth for CyberLab authorization; client-provided role claims are never trusted.
 
-`UserRole -> Role` is the source of truth. UI role claims are never accepted as authorization. Server Components and server routes use `getCurrentSession`, `requireUser`, or `requireRole` before protected data access.
+Suspended local users cannot create an application session even if their Firebase credential is otherwise valid.
 
-## Google login
+## Required configuration
 
-Google OAuth 2.0 / OpenID Connect is optional. Configure `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; the implementation uses state, nonce, PKCE, ID-token signature verification, issuer/audience validation, and verified-email matching.
+Browser-safe Firebase project configuration:
 
-Callback URL: `${APP_URL}/api/auth/google/callback`
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
 
-## Security notes
+Server-only Firebase Admin service account configuration:
 
-- Authentication state is never stored in localStorage.
-- Mutation endpoints reject cross-origin browser requests.
-- Session IP data is HMAC-hashed rather than stored as raw addresses.
-- Logout revokes the current database session; logout-all revokes every active session for the account.
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
+
+Never expose the Admin service-account private key to the browser or commit it to source control.
