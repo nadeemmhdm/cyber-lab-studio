@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   return (
     <section className="shell py-10 sm:py-14">
       <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <div><p className="eyebrow">Student dashboard</p><h1 className="mt-2 text-4xl font-semibold tracking-tight">Welcome, {user.displayName}</h1><p className="mt-3 muted">Your progress is calculated from PostgreSQL, not browser state.</p></div>
+        <div><p className="eyebrow">Student dashboard</p><h1 className="mt-2 text-4xl font-semibold tracking-tight">Welcome, {user.displayName}</h1><p className="mt-3 muted">Your progress is calculated from SQLite-backed server state, not browser state.</p></div>
         {nextLab ? <Link className="button-primary inline-flex items-center gap-2" href={`/labs/${nextLab.slug}`}>Continue learning <ArrowRight size={16} aria-hidden="true" /></Link> : null}
       </div>
 
