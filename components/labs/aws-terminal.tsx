@@ -43,7 +43,7 @@ export function AwsTerminal({ slug, initialHistory = [] }: { slug: string; initi
     <section className="overflow-hidden rounded-3xl border" style={{ borderColor: "var(--border)", background: "#05070b", color: "#d8f9e6" }}>
       <div className="flex items-center justify-between border-b px-4 py-3 text-xs" style={{ borderColor: "#1d2939" }}>
         <span className="font-semibold uppercase tracking-[0.16em]">CyberLab AWS CLI</span>
-        <span style={{ color: "#7f8c9f" }}>simulator · no host shell</span>
+        <span style={{ color: "#7f8c9f" }}>isolated lab · no host shell</span>
       </div>
       <div className="max-h-[520px] min-h-[260px] overflow-auto p-4 font-mono text-xs leading-6" aria-live="polite">
         {entries.length === 0 ? <p style={{ color: "#7f8c9f" }}>Try: aws sts get-caller-identity</p> : null}
