@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, phase-4-5, phase-6-7, phase-8-security]
+    branches: [main, phase-4-5, phase-6-7, phase-8-security, phase-9-validation]
   pull_request:
     branches: [main]
 
