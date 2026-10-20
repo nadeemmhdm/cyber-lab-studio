@@ -96,12 +96,12 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 10 — Instructor and admin
 
-- [ ] Instructor assignments and progress views
-- [ ] Learning-mode/solution visibility controls
-- [ ] User/role/suspension management
-- [ ] Lab/version/hint/solution management
-- [ ] Audit/error/database/platform health views
-- [ ] Maintenance mode and quotas
+- [x] Instructor assignments and progress views
+- [x] Learning-mode/solution visibility controls
+- [x] User/role/suspension management
+- [x] Lab/version/hint/solution management
+- [x] Audit/error/database/platform health views
+- [x] Maintenance mode and quotas
 
 ## Phase 11 — Performance, security, accessibility
 
