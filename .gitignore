@@ -12,6 +12,7 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
-prisma/dev.db
+prisma/*.db
+prisma/*.db-*
 playwright-report/
 test-results/
