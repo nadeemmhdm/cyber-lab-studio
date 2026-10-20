@@ -1,6 +1,8 @@
 import { Prisma, RoleType, SupportTicketPriority, SupportTicketStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
+export const SUPPORT_RESOLVED_RETENTION_MS = 24 * 60 * 60 * 1000;
+
 export class SupportError extends Error {
   constructor(public readonly code: string, message: string, public readonly status = 400) {
     super(message);
@@ -14,6 +16,17 @@ function clean(value: string, max: number) {
 
 async function writeAudit(tx: Prisma.TransactionClient, actorId: string, action: string, ticketId: string, metadata?: Prisma.InputJsonValue) {
   await tx.auditLog.create({ data: { actorId, action, targetType: "SupportTicket", targetId: ticketId, ...(metadata ? { metadata } : {}) } });
+}
+
+export async function purgeExpiredResolvedSupportTickets(now = new Date()) {
+  const cutoff = new Date(now.getTime() - SUPPORT_RESOLVED_RETENTION_MS);
+  const result = await prisma.supportTicket.deleteMany({
+    where: {
+      status: { in: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] },
+      updatedAt: { lte: cutoff },
+    },
+  });
+  return result.count;
 }
 
 export async function createSupportTicket(userId: string, input: { subject: string; category: string; priority?: SupportTicketPriority; message: string }) {
@@ -32,6 +45,7 @@ export async function createSupportTicket(userId: string, input: { subject: stri
 }
 
 export async function listUserTickets(userId: string) {
+  await purgeExpiredResolvedSupportTickets();
   return prisma.supportTicket.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
@@ -41,6 +55,7 @@ export async function listUserTickets(userId: string) {
 }
 
 export async function addUserSupportReply(userId: string, ticketId: string, rawMessage: string) {
+  await purgeExpiredResolvedSupportTickets();
   const message = clean(rawMessage, 8000);
   if (message.length < 2) throw new SupportError("MESSAGE_REQUIRED", "Reply cannot be empty.");
   return prisma.$transaction(async (tx) => {
@@ -56,6 +71,7 @@ export async function addUserSupportReply(userId: string, ticketId: string, rawM
 }
 
 export async function listAdminSupportTickets() {
+  await purgeExpiredResolvedSupportTickets();
   return prisma.supportTicket.findMany({
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     take: 100,
@@ -67,6 +83,7 @@ export async function listAdminSupportTickets() {
 }
 
 export async function addAdminSupportReply(adminId: string, ticketId: string, rawMessage: string) {
+  await purgeExpiredResolvedSupportTickets();
   const message = clean(rawMessage, 8000);
   if (message.length < 2) throw new SupportError("MESSAGE_REQUIRED", "Reply cannot be empty.");
   return prisma.$transaction(async (tx) => {
@@ -83,6 +100,7 @@ export async function addAdminSupportReply(adminId: string, ticketId: string, ra
 }
 
 export async function updateSupportTicketStatus(adminId: string, ticketId: string, status: SupportTicketStatus) {
+  await purgeExpiredResolvedSupportTickets();
   return prisma.$transaction(async (tx) => {
     const admin = await tx.user.findUnique({ where: { id: adminId }, include: { roles: { include: { role: true } } } });
     if (!admin?.roles.some((entry) => entry.role.key === RoleType.ADMIN)) throw new SupportError("ADMIN_REQUIRED", "Administrator role required.", 403);
