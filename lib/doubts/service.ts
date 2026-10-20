@@ -8,7 +8,7 @@ export class DoubtError extends Error {
   }
 }
 
-export type DoubtAttachmentInput = { fileName: string; mimeType: "image/png" | "image/jpeg" | "image/webp"; data: Buffer };
+export type DoubtAttachmentInput = { fileName: string; mimeType: "image/png" | "image/jpeg" | "image/webp"; data: Uint8Array<ArrayBuffer> };
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
