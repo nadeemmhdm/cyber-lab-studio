@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AwsTerminal } from "@/components/labs/aws-terminal";
 import { AzureTerminal } from "@/components/labs/azure-terminal";
+import { EducationalGuidance } from "@/components/labs/educational-guidance";
 import { KqlConsole } from "@/components/labs/kql-console";
 import { LabWorkspaceControls } from "@/components/labs/lab-workspace-controls";
 import { SecurityActions } from "@/components/labs/security-actions";
@@ -51,6 +52,13 @@ export default async function LabWorkspacePage({ params }: { params: Promise<{ s
       <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="space-y-6">
           {workspace.policy.showConcepts ? <article className="glass rounded-3xl p-6"><h2 className="text-xl font-semibold">Concept & scenario</h2><p className="mt-3 leading-7 muted">{workspace.version.conceptExplanation}</p><p className="mt-4 leading-7 muted">{workspace.version.scenario}</p></article> : <article className="rounded-3xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}><h2 className="font-semibold">Challenge mode</h2><p className="mt-2 text-sm muted">Concept guidance, hints, and solutions are hidden by the mode policy.</p></article>}
+
+          <EducationalGuidance
+            hints={workspace.version.hints.map((hint) => ({ level: hint.level, content: hint.content }))}
+            solution={workspace.version.solution}
+            showHints={workspace.policy.showHints}
+            showSolution={workspace.policy.showSolution}
+          />
 
           {workspace.lab.platform === "AWS" ? <div><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Native simulator</p><h2 className="mt-1 text-xl font-semibold">AWS CLI</h2></div><Link href="/docs/aws-compatibility" className="text-link text-sm">Supported commands</Link></div><AwsTerminal slug={slug} initialHistory={initialTerminal} /></div> : null}
           {workspace.lab.platform === "AZURE" ? <div><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Native simulator</p><h2 className="mt-1 text-xl font-semibold">Azure CLI</h2></div><Link href="/docs/azure-compatibility" className="text-link text-sm">Supported commands</Link></div><AzureTerminal slug={slug} initialHistory={initialTerminal} /></div> : null}
