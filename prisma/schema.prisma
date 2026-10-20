@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -56,6 +56,7 @@ enum ResourceProvider {
 
 model User {
   id                 String                 @id @default(cuid())
+  firebaseUid        String?                @unique
   email              String                 @unique
   passwordHash       String?
   displayName        String
@@ -170,7 +171,7 @@ model Lab {
   difficulty       Difficulty
   estimatedMinutes Int
   enabled          Boolean            @default(true)
-  prerequisiteIds  String[]           @default([])
+  prerequisiteIds  Json               @default("[]")
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
   module           Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
@@ -250,36 +251,36 @@ model LabSolution {
 }
 
 model LabAttempt {
-  id              String          @id @default(cuid())
-  userId          String
-  labId           String
-  labVersionId    String
-  mode             LearningMode
-  status           AttemptStatus   @default(STARTED)
-  startedAt        DateTime        @default(now())
-  submittedAt      DateTime?
-  completedAt      DateTime?
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lab              Lab             @relation(fields: [labId], references: [id], onDelete: Cascade)
-  labVersion       LabVersion      @relation(fields: [labVersionId], references: [id], onDelete: Restrict)
-  validationResult ValidationResult?
+  id               String            @id @default(cuid())
+  userId           String
+  labId            String
+  labVersionId     String
+  mode              LearningMode
+  status            AttemptStatus     @default(STARTED)
+  startedAt         DateTime          @default(now())
+  submittedAt       DateTime?
+  completedAt       DateTime?
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab               Lab               @relation(fields: [labId], references: [id], onDelete: Cascade)
+  labVersion        LabVersion        @relation(fields: [labVersionId], references: [id], onDelete: Restrict)
+  validationResult  ValidationResult?
 
   @@index([userId, labId, startedAt])
   @@index([labId, status])
 }
 
 model LabProgress {
-  id              String         @id @default(cuid())
-  userId          String
-  labId           String
-  status          ProgressStatus @default(NOT_STARTED)
-  completionPct   Int            @default(0)
-  lastTaskPosition Int           @default(0)
-  startedAt       DateTime?
-  updatedAt       DateTime       @updatedAt
-  completedAt     DateTime?
-  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lab             Lab            @relation(fields: [labId], references: [id], onDelete: Cascade)
+  id               String         @id @default(cuid())
+  userId           String
+  labId            String
+  status           ProgressStatus @default(NOT_STARTED)
+  completionPct    Int            @default(0)
+  lastTaskPosition Int            @default(0)
+  startedAt        DateTime?
+  updatedAt        DateTime       @updatedAt
+  completedAt      DateTime?
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lab              Lab            @relation(fields: [labId], references: [id], onDelete: Cascade)
 
   @@unique([userId, labId])
   @@index([userId, status])
@@ -306,15 +307,15 @@ model LabEnvironment {
 }
 
 model SimulatedResource {
-  id            String           @id @default(cuid())
+  id            String            @id @default(cuid())
   environmentId String
   provider      ResourceProvider
   resourceType  String
   resourceKey   String
-  attributes    Json             @default("{}")
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  environment   LabEnvironment   @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  attributes    Json              @default("{}")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  environment   LabEnvironment    @relation(fields: [environmentId], references: [id], onDelete: Cascade)
 
   @@unique([environmentId, resourceKey])
   @@index([environmentId, provider, resourceType])
