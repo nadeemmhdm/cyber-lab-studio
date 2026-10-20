@@ -16,15 +16,15 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 2 — Authentication and RBAC
 
-- [ ] Email/password signup and login
-- [ ] Argon2id hashing
-- [ ] HttpOnly session lifecycle
-- [ ] Email verification
-- [ ] Password reset
-- [ ] Logout and logout-all
-- [ ] Student/Instructor/Admin authorization
-- [ ] Rate limiting and brute-force controls
-- [ ] Optional Google login
+- [x] Email/password signup and login
+- [x] Argon2id hashing
+- [x] HttpOnly session lifecycle
+- [x] Email verification
+- [x] Password reset
+- [x] Logout and logout-all
+- [x] Student/Instructor/Admin authorization
+- [x] Rate limiting and brute-force controls
+- [x] Optional Google login
 
 ## Phase 3 — Premium product UI
 
