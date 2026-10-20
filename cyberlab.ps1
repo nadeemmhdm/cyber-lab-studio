@@ -43,8 +43,14 @@ if (-not $nodeExe) {
 
   if (-not (Test-NodeRuntime $candidate)) { throw "Unable to bootstrap Node.js $NodeRelease." }
   $nodeExe = $candidate
-  $env:PATH = "$runtimeDir;$env:PATH"
 }
+
+# Always put the directory containing the exact Node executable first in PATH.
+# This makes npm.cmd/npx.cmd resolution deterministic for both system Node and
+# the repo-local verified runtime used by the one-line installer.
+$nodeDir = Split-Path -Parent $nodeExe
+$env:PATH = "$nodeDir;$env:PATH"
+$env:CYBERLAB_NODE_DIR = $nodeDir
 
 $compatPatch = Join-Path $Root "scripts\windows-child-process-patch.cjs"
 if (-not (Test-Path $compatPatch)) { throw "Windows installer compatibility module is missing: $compatPatch" }
