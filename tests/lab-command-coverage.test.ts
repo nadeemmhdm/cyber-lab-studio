@@ -12,14 +12,25 @@ function executableCommands(number: number) {
   return content.solution.commands.map((step) => step.command.trim()).filter((command) => command && !command.startsWith("UI →"));
 }
 
+const LAB_17_MISSING_ENCRYPTION_COMMAND = "aws s3api get-bucket-encryption --bucket cyberlab-17-training-bucket";
+
 describe("30-lab command compatibility", () => {
-  it("keeps every AWS solution command executable in its lab state", () => {
+  it("keeps every AWS solution command executable with AWS-compatible state errors", () => {
     for (let number = 3; number <= 18; number += 1) {
       const state = createInitialAwsState(number);
       const commands = executableCommands(number);
       expect(commands.length, `Lab ${number} should contain executable AWS commands`).toBeGreaterThan(0);
       for (const command of commands) {
         expect(command.startsWith("aws "), `Lab ${number}: unexpected non-AWS command: ${command}`).toBe(true);
+
+        // Real AWS reports a configuration-not-found error when default bucket encryption is absent.
+        // Lab 17 intentionally starts in that state, so the baseline inspection command is working
+        // only if it produces the matching AWS-style state error rather than fake success.
+        if (number === 17 && command === LAB_17_MISSING_ENCRYPTION_COMMAND) {
+          expect(() => executeAwsCommand(state, command), `Lab ${number}: ${command}`).toThrowError("Server-side encryption configuration not found.");
+          continue;
+        }
+
         expect(() => executeAwsCommand(state, command), `Lab ${number}: ${command}`).not.toThrow();
       }
     }
