@@ -51,4 +51,8 @@ else
   export PATH="$RUNTIME_DIR/bin:$PATH"
 fi
 
+if [[ "${1:-}" == "install" ]]; then
+  shift
+  exec "$NODE_BIN" "$ROOT/scripts/remote-setup.mjs" "$@"
+fi
 exec "$NODE_BIN" "$ROOT/scripts/cyberlab.mjs" "$@"

@@ -23,5 +23,12 @@ export default defineConfig([
       "no-useless-escape": "off",
     },
   },
+  {
+    files: ["scripts/remote-setup.mjs"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^yesNo$" }],
+      "no-empty": ["error", { "allowEmptyCatch": true }],
+    },
+  },
   globalIgnores([".next/**", "node_modules/**", "coverage/**"]),
 ]);

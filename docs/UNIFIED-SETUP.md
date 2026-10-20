@@ -1,30 +1,184 @@
-# Unified Setup, Update and Tunnel Tool
+# Unified Remote Installer, Setup and Update
 
-CyberLab Studio Pro ships one cross-platform setup system with Windows and Linux bootstrap wrappers around the same Node CLI.
+CyberLab Studio Pro ships a true one-line remote installer for Windows and Linux. The user does not need to clone the repository first.
 
-## One command
+## Windows PowerShell
 
-### Windows
+Copy and paste:
 
-Open Command Prompt or PowerShell in the repository folder and run:
+```powershell
+iex (irm 'https://raw.githubusercontent.com/nadeemmhdm/cyber-lab-studio/main/install.ps1')
+```
+
+## Windows Command Prompt
+
+Copy and paste:
 
 ```bat
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/nadeemmhdm/cyber-lab-studio/main/install.ps1')"
+```
+
+## Linux
+
+Copy and paste:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nadeemmhdm/cyber-lab-studio/main/install.sh)"
+```
+
+The Linux form uses command substitution instead of `curl | bash` so Bash keeps terminal stdin available for the interactive configuration questions.
+
+## Installation directory
+
+Default locations:
+
+- Windows: `%USERPROFILE%\CyberLab-Studio`
+- Linux: `~/CyberLab-Studio`
+
+Advanced users may override the install location through `InstallDir` on Windows or `CYBERLAB_INSTALL_DIR` on Linux.
+
+## Fresh-install sequence
+
+The remote installer performs the following flow:
+
+1. checks for Git;
+2. installs Git using a supported Windows/Linux package manager when Git is absent;
+3. clones the public CyberLab repository from `main`;
+4. invokes the OS bootstrap wrapper;
+5. checks Node.js 24.12+;
+6. when Node is missing/old, downloads official Node.js 24.12.0 into `.cyberlab/runtime`;
+7. verifies the Node.js archive against the official `SHASUMS256.txt` before use;
+8. runs `npm ci` to install the tested package graph;
+9. checks `npm outdated`;
+10. applies non-persistent package updates allowed by the tested package ranges;
+11. reports major-version jumps instead of silently forcing them;
+12. runs `npm audit --audit-level=moderate`;
+13. collects Firebase Web configuration in the terminal;
+14. accepts a Firebase Admin service-account JSON path or manual Admin SDK values;
+15. generates local session/bootstrap secrets;
+16. writes `.env` locally;
+17. generates Prisma, pushes the SQLite schema and seeds the platform/labs;
+18. asks for first-Administrator email, display name and password;
+19. creates the Firebase user and CyberLab Administrator role directly from the terminal;
+20. deletes the one-time bootstrap token from `.env` after successful Administrator creation;
+21. asks which Cloudflare/public-access mode to use;
+22. downloads `cloudflared` locally if needed;
+23. configures the selected tunnel mode;
+24. builds CyberLab;
+25. starts CyberLab and keeps the tunnel attached to the running process.
+
+The installer does not expose SQLite, Prisma Studio or the host shell.
+
+## Firebase values collected
+
+The terminal setup collects:
+
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- Firebase service-account JSON path, or:
+  - `FIREBASE_PROJECT_ID`
+  - `FIREBASE_CLIENT_EMAIL`
+  - `FIREBASE_PRIVATE_KEY`
+
+The installer generates/manages:
+
+- `DATABASE_URL`
+- `APP_URL`
+- `SESSION_SECRET`
+- `INITIAL_ADMIN_SETUP_TOKEN`
+- `INITIAL_ADMIN_EMAIL`
+
+CyberLab does not require application-level `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET`. Google sign-in is configured through Firebase Authentication.
+
+## Administrator creation
+
+The installer asks for:
+
+- Administrator email
+- Administrator display name
+- Administrator password
+
+The account is created through Firebase Admin and the CyberLab Administrator role is written transactionally to SQLite. After successful creation, the one-time setup token is removed from `.env`.
+
+If an Administrator already exists, first-run provisioning is skipped instead of creating a duplicate Administrator.
+
+## Cloudflare modes
+
+### Quick Tunnel
+
+Quick Tunnel is the default easy public-access option. It:
+
+- requires no Cloudflare account;
+- downloads `cloudflared` locally when needed;
+- starts a temporary tunnel to `http://localhost:3000`;
+- reads the generated `https://<random>.trycloudflare.com` URL;
+- writes the generated URL to `APP_URL`;
+- attempts to add that hostname to Firebase Authentication Authorized Domains;
+- starts CyberLab and keeps the tunnel running.
+
+The URL is temporary and may change after the process restarts.
+
+### Named Tunnel
+
+Named Tunnel is for a stable custom hostname such as `lab.example.com`.
+
+The installer:
+
+- opens Cloudflare authorization in the browser once;
+- creates/reuses the named tunnel;
+- configures the DNS route;
+- writes `deploy/cloudflared/config.yml`;
+- updates `APP_URL`;
+- attempts to update Firebase Authorized Domains;
+- starts CyberLab and the named tunnel.
+
+Cloudflare browser authorization is intentionally not bypassed.
+
+### Firebase Authorized Domains
+
+The installer attempts to update Firebase Authentication Authorized Domains using the configured Firebase service account. Automatic configuration requires permission equivalent to `firebaseauth.configs.update`.
+
+If the project/service account does not permit that operation, setup continues and prints the exact public hostname that must be added manually in Firebase Authentication settings.
+
+## Re-running the same one-line command
+
+The exact same PowerShell/CMD/Linux one-liner is also the updater.
+
+For an existing installation it:
+
+1. refuses to overwrite uncommitted Git changes;
+2. fetches `main`;
+3. performs `git pull --ff-only`;
+4. checks and installs packages;
+5. checks package updates and audit state;
+6. regenerates Prisma;
+7. applies the SQLite schema;
+8. reseeds idempotent platform data;
+9. opens the normal CyberLab management menu.
+
+Major dependency upgrades are deliberately not forced by the installer. They should arrive through a tested CyberLab repository release.
+
+## Installed management CLI
+
+After installation, the management wrappers remain available.
+
+Windows:
+
+```bat
+cd %USERPROFILE%\CyberLab-Studio
 cyberlab.cmd
 ```
 
-`cyberlab.cmd` automatically invokes PowerShell with a process-local execution-policy bypass. If Node.js 24.12+ is not available, CyberLab downloads the official Node.js 24.12.0 Windows archive into `.cyberlab/runtime`, verifies it against Node.js `SHASUMS256.txt`, and uses that repo-local runtime. Administrator rights are not required for the local runtime.
-
-### Linux
+Linux:
 
 ```bash
+cd ~/CyberLab-Studio
 bash ./cyberlab.sh
 ```
 
-If Node.js 24.12+ is not available, the script downloads the official Node.js 24.12.0 Linux archive for x64 or arm64, verifies its SHA-256 checksum against Node.js `SHASUMS256.txt`, extracts it into `.cyberlab/runtime`, and continues without replacing the system Node installation.
-
-## Interactive menu
-
-Running the command without arguments opens:
+The menu includes:
 
 1. Setup / repair
 2. Web setup wizard
@@ -35,64 +189,9 @@ Running the command without arguments opens:
 7. Doctor
 8. Exit
 
-The common CLI is `scripts/cyberlab.mjs`.
-
-## First-time setup
-
-Windows:
-
-```bat
-cyberlab.cmd setup
-```
-
-Linux:
-
-```bash
-bash ./cyberlab.sh setup
-```
-
-The setup flow:
-
-- validates Node/npm and the repository lockfile;
-- installs the locked dependency graph with `npm ci`;
-- checks direct packages for updates;
-- automatically applies same-major direct-package updates and refreshes the lockfile;
-- never forces major-version dependency upgrades;
-- runs `npm audit --audit-level=moderate` and, when needed, `npm audit fix` without `--force`;
-- collects required `.env` values interactively;
-- accepts a Firebase service-account JSON file path so Admin SDK values do not need to be copied field by field;
-- generates `SESSION_SECRET` and the one-time admin bootstrap token automatically;
-- runs Prisma generate/schema push and seeds roles + all labs;
-- optionally provisions the first Administrator account directly from the same setup command;
-- removes the one-time setup token from `.env` after successful first-admin provisioning;
-- optionally starts Cloudflare Tunnel setup;
-- optionally starts CyberLab.
-
-### Firebase values
-
-The wizard collects:
-
-- `NEXT_PUBLIC_FIREBASE_API_KEY`
-- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-- `NEXT_PUBLIC_FIREBASE_APP_ID`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
-
-It also manages:
-
-- `DATABASE_URL`
-- `APP_URL`
-- `SESSION_SECRET`
-- `INITIAL_ADMIN_SETUP_TOKEN`
-- `INITIAL_ADMIN_EMAIL`
-
-Google identity remains configured in Firebase Authentication. CyberLab does not require application-level `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET`.
-
 ## Local setup web UI
 
-The same tool can expose a setup-only UI bound to localhost:
+For an installed checkout:
 
 Windows:
 
@@ -106,87 +205,32 @@ Linux:
 bash ./cyberlab.sh web
 ```
 
-It opens `http://127.0.0.1:3210` and is intentionally bound only to the loopback interface. The page can collect Firebase Web values, a Firebase service-account JSON document, administrator credentials, and package-update preference. The page writes `.env`, prepares SQLite/Prisma, and provisions the first Administrator when requested.
+The tool opens a local-only setup UI on `http://127.0.0.1:3210`. It is bound only to loopback and is not exposed through the CyberLab tunnel.
 
-The local wizard uses a random per-run setup token and is not a public deployment endpoint. Stop it with `Ctrl+C` after setup.
-
-## Update CyberLab
-
-Windows:
-
-```bat
-cyberlab.cmd update
-```
-
-Linux:
-
-```bash
-bash ./cyberlab.sh update
-```
-
-The update flow:
-
-1. performs `git pull --ff-only` only when the repository is a clean Git checkout;
-2. skips source pulling instead of overwriting local changes;
-3. restores the lockfile dependency graph;
-4. detects outdated direct dependencies;
-5. automatically updates direct dependencies when the latest version remains in the same major line;
-6. reports major-version upgrades for release review instead of silently applying them;
-7. runs the dependency audit without force upgrades;
-8. regenerates Prisma, applies the SQLite schema and reseeds idempotent platform data.
-
-When using a GitHub ZIP instead of a Git checkout, source-code update is intentionally skipped. Download a fresh release ZIP when a new release is published.
+It can collect Firebase Web configuration, Firebase service-account JSON, first-Administrator credentials and package-update preference.
 
 ## Doctor
+
+Windows:
 
 ```bat
 cyberlab.cmd doctor
 ```
 
-or
+Linux:
 
 ```bash
 bash ./cyberlab.sh doctor
 ```
 
-Doctor checks Node/npm, Git availability, lockfile, installed packages, `.env`, required Firebase/environment values, and Cloudflare Tunnel availability.
+Doctor checks runtime, npm, Git, lockfile, installed packages, environment values and Cloudflare availability.
 
-## Cloudflare Tunnel
+## Security behavior
 
-Run:
-
-```bat
-cyberlab.cmd tunnel
-```
-
-or
-
-```bash
-bash ./cyberlab.sh tunnel
-```
-
-The tool offers:
-
-- **Quick Tunnel** — a temporary `trycloudflare.com` public URL pointing only to `http://localhost:3000`.
-- **Named Tunnel** — Cloudflare browser login, tunnel creation/reuse, DNS route, `deploy/cloudflared/config.yml` generation, and automatic `APP_URL=https://<hostname>` update.
-
-If `cloudflared` is not already installed, CyberLab downloads the official Cloudflare release binary into `.cyberlab/bin` and records a SHA-256 fingerprint in the terminal output.
-
-After a named hostname is configured, add that hostname to **Firebase Authentication → Authorized domains** before public sign-in.
-
-CyberLab must never tunnel SQLite files, Prisma Studio, filesystem shares, or unrelated local ports.
-
-## Direct CLI commands
-
-When Node 24.12+ is already available, these npm aliases are also available:
-
-```bash
-npm run cyberlab
-npm run setup
-npm run setup:web
-npm run doctor
-npm run update
-npm run tunnel
-```
-
-For first installation, prefer `cyberlab.cmd` on Windows or `bash ./cyberlab.sh` on Linux because those wrappers can bootstrap a missing/old Node runtime.
+- Installer secrets stay in local `.env` and are not committed.
+- The Node fallback runtime is checksum-verified.
+- The installer does not use `npm audit fix --force`.
+- Major dependency jumps are held for a tested repository release.
+- Git updates use fast-forward only and refuse dirty worktrees.
+- Cloudflare exposes only the web service on localhost port 3000.
+- Firebase Admin credentials stay server-side.
