@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AwsTerminal } from "@/components/labs/aws-terminal";
 import { AzureTerminal } from "@/components/labs/azure-terminal";
+import { KqlConsole } from "@/components/labs/kql-console";
 import { LabWorkspaceControls } from "@/components/labs/lab-workspace-controls";
+import { SecurityActions } from "@/components/labs/security-actions";
 import { requireUser } from "@/lib/auth/session";
 import { getWorkspace, LabEngineError } from "@/lib/labs/engine";
 import { prisma } from "@/lib/prisma";
@@ -25,8 +27,14 @@ export default async function LabWorkspacePage({ params }: { params: Promise<{ s
   const progress = workspace.progress;
   const state = JSON.stringify(workspace.environment.environmentState, null, 2);
   const hasTerminal = workspace.lab.platform === "AWS" || workspace.lab.platform === "AZURE";
+  const hasKql = workspace.lab.platform === "SENTINEL" || workspace.lab.platform === "KQL" || workspace.lab.platform === "DEFENDER_XDR";
   const terminalHistory = hasTerminal ? await prisma.terminalHistory.findMany({ where: { userId: session.user.id, environmentId: workspace.environment.id }, orderBy: { createdAt: "desc" }, take: 12 }) : [];
   const initialTerminal = terminalHistory.reverse().map((item) => ({ command: item.command, exitCode: item.exitCode, output: item.outputSummary ?? "" }));
+  const initialQuery = workspace.lab.platform === "SENTINEL"
+    ? 'SigninLogs | where RiskLevel == "high" | project TimeGenerated, UserPrincipalName, IPAddress, ResultType | sort by TimeGenerated asc'
+    : workspace.lab.platform === "DEFENDER_XDR"
+      ? 'UnifiedSecurityEvents | where Severity == "High" or Severity == "Critical" | sort by TimeGenerated asc'
+      : 'DeviceProcessEvents | where ProcessCommandLine contains "powershell" | project TimeGenerated, DeviceName, AccountName, ProcessCommandLine';
 
   return (
     <section className="shell py-10 sm:py-14">
@@ -46,6 +54,8 @@ export default async function LabWorkspacePage({ params }: { params: Promise<{ s
 
           {workspace.lab.platform === "AWS" ? <div><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Native simulator</p><h2 className="mt-1 text-xl font-semibold">AWS CLI</h2></div><Link href="/docs/aws-compatibility" className="text-link text-sm">Supported commands</Link></div><AwsTerminal slug={slug} initialHistory={initialTerminal} /></div> : null}
           {workspace.lab.platform === "AZURE" ? <div><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Native simulator</p><h2 className="mt-1 text-xl font-semibold">Azure CLI</h2></div><Link href="/docs/azure-compatibility" className="text-link text-sm">Supported commands</Link></div><AzureTerminal slug={slug} initialHistory={initialTerminal} /></div> : null}
+          {hasKql ? <div><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Security data engine</p><h2 className="mt-1 text-xl font-semibold">KQL query console</h2></div><Link href="/docs/kql-compatibility" className="text-link text-sm">Supported KQL</Link></div><KqlConsole slug={slug} initialQuery={initialQuery} /></div> : null}
+          {workspace.lab.platform === "SENTINEL" || workspace.lab.platform === "DEFENDER_XDR" ? <SecurityActions slug={slug} platform={workspace.lab.platform} /> : null}
 
           <article className="rounded-3xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-semibold">Persisted simulator state</h2><span className="text-xs muted">SQLite-backed</span></div><pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border p-4 text-xs leading-6" style={{ borderColor: "var(--border)", background: "var(--surface-strong)" }}>{state}</pre></article>
         </div>
