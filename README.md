@@ -4,7 +4,9 @@ CyberLab Studio Pro is a multi-user cybersecurity training platform for hands-on
 
 ## Current status
 
-Phases 1–9 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset before verified completion, persisted progress/history, cross-user isolation, native AWS and Azure simulators, a KQL AST evaluator, Microsoft Sentinel detection/incident workflows, Defender XDR investigation state built from shared synthetic security events, complete Version 2 educational curriculum for all 30 labs, and server-authoritative validation with transactional completion, cryptographic per-user flags, and verified achievements.
+Phases 1–10 are implemented. The platform includes a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, isolated versioned lab environments, native AWS/Azure simulators, KQL/Sentinel/Defender investigation workflows, complete Version 2 educational curriculum, server-authoritative validation with unique flags and achievements, plus role-scoped Instructor and Admin control planes.
+
+Phase 10 adds instructor/student assignments, assigned-student progress views, user role/suspension management, lab and version management, curriculum controls, audit/health views, maintenance mode, allowed learning modes, hint/solution visibility controls, and daily lab-start quotas. Management mutations are server-authorized and audited.
 
 The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and blocks on `npm audit --audit-level=moderate`.
 
@@ -20,6 +22,7 @@ The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and bl
 - Versioned 30-lab educational content registry
 - Server-side 30-lab validation registry
 - Transactional completion/flag/achievement services
+- Instructor/Admin RBAC control plane
 - Zod validation
 - Vitest
 
@@ -31,42 +34,29 @@ The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and bl
 4. Copy `.env.example` to `.env` and provide the Firebase Web + Admin values.
 5. Install the locked dependency graph: `npm ci`.
 6. Create/update SQLite schema: `npx prisma db push`.
-7. Seed labs, simulator state, and Phase 8 Version 2 curriculum: `npm run db:seed`.
+7. Seed labs, simulator state, and Version 2 curriculum: `npm run db:seed`.
 8. Start development: `npm run dev`.
 9. Open `http://localhost:3000`.
 
 No `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is required by CyberLab. Google identity is configured through Firebase Console.
 
-## Simulator surfaces
+## Product surfaces
 
-AWS labs use the native CyberLab AWS CLI simulator; Azure labs use the native Azure CLI simulator. Sentinel, KQL, and Defender XDR labs use the shared security dataset and KQL engine.
+Students use `/dashboard`, `/labs`, progress/history/achievement/profile pages, and the versioned lab workspace. Instructor accounts use `/instructor` to view only explicitly assigned learner progress. Admin accounts use `/admin` for platform operations and management.
 
-Examples:
-
-```text
-aws sts get-caller-identity
-aws ec2 describe-security-groups
-az account show
-az network nsg list --resource-group cyberlab-rg
-SigninLogs | where RiskLevel == "high" | project TimeGenerated, UserPrincipalName, IPAddress
-DeviceProcessEvents | where ProcessCommandLine contains "powershell" | summarize Total=count() by DeviceName
-```
-
-The native simulators never forward input to a host shell or real cloud account. Unsupported operations fail explicitly.
+AWS labs use the native CyberLab AWS CLI simulator; Azure labs use the native Azure CLI simulator. Sentinel, KQL, and Defender XDR labs use the shared security dataset and KQL engine. The native simulators never forward input to a host shell or real cloud account.
 
 ## Educational modes
 
-- **Guided** — concepts, tasks, three progressive hints, and the full educational solution are available.
-- **Practice** — keeps the curriculum and solution available while learners perform the real simulator/query workflow themselves.
-- **Challenge** — hides concepts, hints, and solutions according to the lab-mode policy.
+- **Guided** — concepts, tasks, three progressive hints, and full educational solution when globally allowed.
+- **Practice** — curriculum and solution remain available when globally allowed while learners perform the simulator/query workflow themselves.
+- **Challenge** — concepts, hints, and solutions are hidden by the mode policy.
 
-Opening a hint or solution never grants completion. Task workflow is capped below 100%; the authenticated server validates persisted evidence before issuing the completion record and unique flag. Verified labs are then locked against environment reset so an earned completion remains tied to the state that was certified.
+Administrators can additionally disable specific learning modes or globally hide hints/solutions. Opening guidance never grants completion. Task workflow is capped below 100%; the authenticated server validates persisted evidence before issuing the completion record and unique flag.
 
 ## Validation and achievements
 
-Each of the 30 labs has a server-side validator profile. Depending on the lab, validation can use successful terminal history, successful KQL history, persisted simulator state, state-derived findings, and persisted Sentinel/Defender investigation actions. Read-only investigation labs are not forced to perform fake mutations.
-
-Successful validation atomically records the passing validation result, marks the attempt passed, moves progress to 100%, creates the completion record, issues one cryptographically random `CYBERLAB{...}` flag, writes an audit event, and evaluates achievements. Failed validation creates no completion or flag. Re-validating an already completed lab returns the same existing flag rather than creating duplicates.
+Each of the 30 labs has a server-side validator profile. Successful validation atomically records the passing validation result, marks the attempt passed, moves progress to 100%, creates the completion record, issues one cryptographically random `CYBERLAB{...}` flag, writes an audit event, and evaluates achievements. Failed validation creates no completion or flag. Verified environments are immutable.
 
 ## Useful commands
 
@@ -88,12 +78,10 @@ npm run db:studio
 - Browser code never receives Firebase Admin credentials, database secrets, hidden validator internals, or real cloud credentials.
 - Completion flags are generated only after successful server-side validation and are globally unique in the database.
 - Authentication state for CyberLab is an HttpOnly server session cookie, not localStorage.
+- Instructor reads are scoped by `InstructorAssignment`; administrator mutations require server-side ADMIN authorization and emit audit events.
 - Simulator commands use registries and internal state only; host-shell execution is prohibited.
 - KQL executes only against stored synthetic training tables.
-- Sentinel analytics rules create alerts only from real KQL matches in the learner environment.
-- Defender XDR correlations reference the same stored event IDs used by KQL and Sentinel.
 - Student lab environments are isolated by user + lab + version.
-- Educational hints/solutions do not contain flags or hidden validator internals.
 - Unsupported simulator operations return explicit errors rather than fake success.
 - CI audits the locked npm dependency graph and fails on moderate-or-higher findings.
 
@@ -108,6 +96,7 @@ npm run db:studio
 - `docs/SECURITY-OPERATIONS.md` — Sentinel + Defender XDR shared investigation model
 - `docs/PHASE8-CONTENT.md` — Version 2 educational content architecture
 - `docs/PHASE9.md` — validation, completion, flags, achievements, and leakage controls
+- `docs/PHASE10.md` — instructor/admin scope and platform controls
 - `docs/COMPATIBILITY.md` — implemented compatibility matrix
 - `docs/ROADMAP.md` — implementation phases
 - `SECURITY.md` — vulnerability reporting and security rules
