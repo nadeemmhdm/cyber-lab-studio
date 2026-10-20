@@ -63,10 +63,10 @@ export function SiteNavigation({ signedIn, roles }: Props) {
       <button type="button" className="button-secondary grid h-10 w-10 place-items-center p-0" aria-label={open ? "Close navigation menu" : "Open navigation menu"} aria-expanded={open} aria-controls="mobile-primary-navigation" onClick={() => setOpen((value) => !value)}>
         {open ? <X size={20} /> : <Menu size={21} />}
       </button>
-      {open ? <div id="mobile-primary-navigation" className="absolute inset-x-0 top-full border-b p-3 shadow-xl" style={{ borderColor: "var(--border)", background: "var(--background)" }}>
+      {open ? <div id="mobile-primary-navigation" className="absolute inset-x-0 top-full max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-b p-3 shadow-xl" style={{ borderColor: "var(--border)", background: "var(--background)" }}>
         <nav className="shell grid gap-1" aria-label="Mobile primary navigation">
           <NavigationLinks items={items} close={() => setOpen(false)} />
-          <div className="mt-2 flex items-center gap-2 border-t pt-3" style={{ borderColor: "var(--border)" }}><ThemeToggle />{signedIn ? <LogoutButton /> : null}</div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-3" style={{ borderColor: "var(--border)" }}><ThemeToggle />{signedIn ? <LogoutButton /> : null}</div>
         </nav>
       </div> : null}
     </div>
