@@ -67,9 +67,16 @@ enum SupportTicketPriority {
   HIGH
 }
 
+enum DoubtStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
 model User {
   id String @id @default(cuid())
   firebaseUid String? @unique
+  username String? @unique
   email String @unique
   displayName String
   emailVerifiedAt DateTime?
@@ -88,6 +95,11 @@ model User {
   auditLogs AuditLog[] @relation("AuditActor")
   instructorLinks InstructorAssignment[] @relation("Instructor")
   studentLinks InstructorAssignment[] @relation("AssignedStudent")
+  enrollmentInvites EnrollmentInvite[] @relation("EnrollmentInstructor")
+  enrollmentRegistration EnrollmentRegistration? @relation("EnrollmentStudent")
+  doubtThreadsAsStudent DoubtThread[] @relation("DoubtStudent")
+  doubtThreadsAsInstructor DoubtThread[] @relation("DoubtInstructor")
+  doubtMessages DoubtMessage[] @relation("DoubtAuthor")
   cloudIntegrations OptionalCloudIntegration[]
   supportTickets SupportTicket[] @relation("SupportRequester")
   supportReplies SupportReply[] @relation("SupportAuthor")
@@ -175,6 +187,7 @@ model Lab {
   environments LabEnvironment[]
   completions CompletionRecord[]
   flags Flag[]
+  doubtThreads DoubtThread[]
   @@index([platform, difficulty])
   @@index([enabled, number])
 }
@@ -411,6 +424,82 @@ model InstructorAssignment {
   student User @relation("AssignedStudent", fields:[studentId], references:[id], onDelete:Cascade)
   @@id([instructorId, studentId])
   @@index([studentId])
+}
+
+model EnrollmentInvite {
+  id String @id @default(cuid())
+  instructorId String
+  tokenHash String @unique
+  label String?
+  maxUses Int
+  usedCount Int @default(0)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  instructor User @relation("EnrollmentInstructor", fields:[instructorId], references:[id], onDelete:Cascade)
+  registrations EnrollmentRegistration[]
+  @@index([instructorId, createdAt])
+  @@index([expiresAt, revokedAt])
+}
+
+model EnrollmentRegistration {
+  id String @id @default(cuid())
+  inviteId String
+  studentId String @unique
+  createdAt DateTime @default(now())
+  invite EnrollmentInvite @relation(fields:[inviteId], references:[id], onDelete:Restrict)
+  student User @relation("EnrollmentStudent", fields:[studentId], references:[id], onDelete:Cascade)
+  @@index([inviteId, createdAt])
+}
+
+model LoginThrottle {
+  key String @id
+  failures Int @default(0)
+  windowStartedAt DateTime @default(now())
+  lockedUntil DateTime?
+  updatedAt DateTime @updatedAt
+}
+
+model DoubtThread {
+  id String @id @default(cuid())
+  studentId String
+  instructorId String
+  labId String
+  status DoubtStatus @default(OPEN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student User @relation("DoubtStudent", fields:[studentId], references:[id], onDelete:Cascade)
+  instructor User @relation("DoubtInstructor", fields:[instructorId], references:[id], onDelete:Cascade)
+  lab Lab @relation(fields:[labId], references:[id], onDelete:Cascade)
+  messages DoubtMessage[]
+  @@index([studentId, updatedAt])
+  @@index([instructorId, status, updatedAt])
+  @@index([labId, updatedAt])
+}
+
+model DoubtMessage {
+  id String @id @default(cuid())
+  threadId String
+  authorId String
+  message String
+  createdAt DateTime @default(now())
+  thread DoubtThread @relation(fields:[threadId], references:[id], onDelete:Cascade)
+  author User @relation("DoubtAuthor", fields:[authorId], references:[id], onDelete:Cascade)
+  attachments DoubtAttachment[]
+  @@index([threadId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model DoubtAttachment {
+  id String @id @default(cuid())
+  messageId String
+  fileName String
+  mimeType String
+  sizeBytes Int
+  data Bytes
+  createdAt DateTime @default(now())
+  message DoubtMessage @relation(fields:[messageId], references:[id], onDelete:Cascade)
+  @@index([messageId])
 }
 
 model PlatformSetting {
