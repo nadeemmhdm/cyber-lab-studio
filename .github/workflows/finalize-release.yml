@@ -50,6 +50,23 @@ jobs:
           python scripts/generate-lab-manual.py lab-manual-data.json docs/artifacts
           python scripts/generate-release-deck.py lab-manual-data.json docs/artifacts
 
+      - name: Make finalization replacements idempotent
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/finalize-release.mjs')
+          text = path.read_text()
+          old = '  if (after === before) throw new Error(`Could not apply ${label} to ${path}`);'
+          new = '''  if (after === before) {
+            if (typeof replacement === "string" && before.includes(replacement)) return;
+            throw new Error(`Could not apply ${label} to ${path}`);
+          }'''
+          if old in text:
+              text = text.replace(old, new)
+              path.write_text(text)
+          PY
+
       - name: Apply repository finalization
         run: node scripts/finalize-release.mjs
 
