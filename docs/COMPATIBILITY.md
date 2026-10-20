@@ -145,7 +145,7 @@ See `docs/KQL-ENGINE.md` and `/docs/kql-compatibility`.
 | incident status/severity | Supported |
 | analyst notes | Supported |
 | duplicate detection suppression | Supported, tested |
-| reset | Deterministic Phase 4 reset |
+| reset | Deterministic Phase 4 reset before verified completion |
 
 ## Defender XDR simulator
 
@@ -161,7 +161,7 @@ See `docs/KQL-ENGINE.md` and `/docs/kql-compatibility`.
 | incident status/severity | Supported |
 | investigation notes | Supported |
 | KQL hunting | Supported through shared KQL engine |
-| reset | Deterministic Phase 4 reset |
+| reset | Deterministic Phase 4 reset before verified completion |
 
 Sentinel, KQL, and Defender XDR deliberately share the same synthetic event IDs so a learner can pivot between products and confirm the same attack evidence.
 
@@ -192,3 +192,27 @@ See `docs/SECURITY-OPERATIONS.md`.
 | Client-side completion from solution | Explicitly unsupported | server validation remains authoritative |
 
 See `docs/PHASE8-CONTENT.md`.
+
+## Phase 9 validation, flags, and achievements
+
+| Capability | Status | Verification |
+| --- | --- | --- |
+| Validator registry for Labs 01–30 | Supported | exact 30-profile coverage test |
+| Task-only completion | Explicitly unsupported | pre-validation progress capped at 99% |
+| AWS/Azure command evidence | Supported | successful per-environment terminal history |
+| Sentinel/KQL/Defender query evidence | Supported | successful per-environment query history |
+| Persisted final-state validation | Supported | platform-specific state predicates |
+| Read-only investigation labs | Supported | no fake mutation requirement |
+| Sentinel/Defender analyst actions | Supported | persisted security-state validation |
+| Transactional completion | Supported | Prisma transaction |
+| Failed validation creates completion | Explicitly prohibited, tested | no `CompletionRecord` or `Flag` |
+| Successful validation reaches 100% | Supported, tested | `LabProgress.COMPLETED` |
+| Cryptographic per-user flags | Supported, tested | server random bytes + DB uniqueness |
+| Repeated validation | Idempotent, tested | existing flag reused |
+| Verified-lab reset | Explicitly blocked | immutable completion state |
+| Achievement evaluation | Supported | verified completions/PASSED attempts only |
+| Challenge achievement | Supported, tested | requires passed Challenge attempt |
+| Hidden validator details in API | Explicitly prohibited, tested | coarse public check labels only |
+| Validation audit events | Supported | pass/fail `AuditLog` entries |
+
+See `docs/PHASE9.md`.
