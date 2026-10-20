@@ -71,13 +71,25 @@ describe("Azure simulator state", () => {
   it("enforces denied actions before mutations", () => {
     const state = createInitialAzureState(20);
     state.principal.deniedActions.push("Microsoft.Authorization/roleAssignments/write");
-    expect(() => executeAzureCommand(state, "az role assignment create --assignee student@cyberlab.local --role Reader")).toThrowError(/AuthorizationFailed/);
+    try {
+      executeAzureCommand(state, "az role assignment create --assignee student@cyberlab.local --role Reader");
+      throw new Error("Expected AuthorizationFailed");
+    } catch (error) {
+      expect(error).toBeInstanceOf(AzureSimulatorError);
+      expect((error as AzureSimulatorError).code).toBe("AuthorizationFailed");
+    }
     expect(state.rbac.assignments).toHaveLength(1);
   });
 
   it("returns explicit unsupported-operation errors", () => {
     const state = createInitialAzureState(21);
-    expect(() => executeAzureCommand(state, "az network watcher list")).toThrowError(/UnsupportedOperation/);
+    try {
+      executeAzureCommand(state, "az network watcher list");
+      throw new Error("Expected UnsupportedOperation");
+    } catch (error) {
+      expect(error).toBeInstanceOf(AzureSimulatorError);
+      expect((error as AzureSimulatorError).code).toBe("UnsupportedOperation");
+    }
   });
 
   it("publishes a broad command compatibility registry", () => {
