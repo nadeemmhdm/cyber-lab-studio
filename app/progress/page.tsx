@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RoleType } from "@prisma/client";
 import { BarChart3 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/rbac";
 import { summarizeProgress } from "@/lib/dashboard/stats";
 
 export const metadata: Metadata = { title: "My Progress" };
 
 export default async function ProgressPage() {
-  const { user } = await requireUser();
+  const { user } = await requireRole([RoleType.STUDENT]);
   const [labs, progress] = await Promise.all([
     prisma.lab.findMany({ where: { enabled: true }, orderBy: { number: "asc" } }),
     prisma.labProgress.findMany({ where: { userId: user.id } }),
