@@ -2,17 +2,19 @@ import { randomUUID } from "node:crypto";
 import { RoleType, SupportTicketStatus } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { AdminBootstrapError, claimInitialAdmin, getInitialAdminState } from "@/lib/setup/admin-bootstrap";
+import { AdminBootstrapError, getInitialAdminState, provisionInitialAdmin } from "@/lib/setup/admin-bootstrap";
 import { addAdminSupportReply, addUserSupportReply, createSupportTicket, listAdminSupportTickets, listUserTickets, updateSupportTicketStatus } from "@/lib/support/service";
 
 const suffix = randomUUID().slice(0, 8);
 const previousInitialAdminEmail = process.env.INITIAL_ADMIN_EMAIL;
+const previousInitialAdminToken = process.env.INITIAL_ADMIN_SETUP_TOKEN;
 let adminId = "";
 let userId = "";
 
 beforeAll(async () => {
   const adminEmail = `release-admin-${suffix}@example.test`;
   process.env.INITIAL_ADMIN_EMAIL = adminEmail;
+  process.env.INITIAL_ADMIN_SETUP_TOKEN = `release-test-token-${suffix}-0123456789abcdef0123456789`;
   const [admin, user] = await Promise.all([
     prisma.user.create({ data: { email: adminEmail, displayName: "Release Admin", emailVerifiedAt: new Date() } }),
     prisma.user.create({ data: { email: `release-user-${suffix}@example.test`, displayName: "Release User", emailVerifiedAt: new Date() } }),
@@ -25,24 +27,31 @@ afterAll(async () => {
   await prisma.user.deleteMany({ where: { id: { in: [adminId, userId].filter(Boolean) } } });
   if (previousInitialAdminEmail === undefined) delete process.env.INITIAL_ADMIN_EMAIL;
   else process.env.INITIAL_ADMIN_EMAIL = previousInitialAdminEmail;
+  if (previousInitialAdminToken === undefined) delete process.env.INITIAL_ADMIN_SETUP_TOKEN;
+  else process.env.INITIAL_ADMIN_SETUP_TOKEN = previousInitialAdminToken;
   await prisma.$disconnect();
 });
 
 describe("release admin bootstrap and support workflow", () => {
-  it("allows only the configured verified account to claim the first administrator role", async () => {
-    const before = await getInitialAdminState(adminId);
+  it("keeps initial admin bootstrap token-gated and disables setup after an admin role exists", async () => {
+    const before = await getInitialAdminState();
     expect(before.configured).toBe(true);
     expect(before.adminExists).toBe(false);
-    expect(before.eligible).toBe(true);
+    expect(before.emailRestricted).toBe(true);
 
-    await claimInitialAdmin(adminId);
-    const role = await prisma.userRole.findFirst({ where: { userId: adminId, role: { key: RoleType.ADMIN } } });
-    expect(role).not.toBeNull();
+    await expect(provisionInitialAdmin({
+      setupToken: "wrong-token",
+      email: process.env.INITIAL_ADMIN_EMAIL!,
+      displayName: "Release Admin",
+      password: "ReleaseAdminPassword123!",
+    })).rejects.toMatchObject({ code: "SETUP_TOKEN_INVALID" } satisfies Partial<AdminBootstrapError>);
 
-    const after = await getInitialAdminState(userId);
+    const adminRole = await prisma.role.findUnique({ where: { key: RoleType.ADMIN } });
+    expect(adminRole).not.toBeNull();
+    await prisma.userRole.create({ data: { userId: adminId, roleId: adminRole!.id } });
+
+    const after = await getInitialAdminState();
     expect(after.adminExists).toBe(true);
-    expect(after.eligible).toBe(false);
-    await expect(claimInitialAdmin(userId)).rejects.toMatchObject({ code: "ALREADY_CONFIGURED" } satisfies Partial<AdminBootstrapError>);
   });
 
   it("keeps support tickets private to the reporter while administrators can reply", async () => {
