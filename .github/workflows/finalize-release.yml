@@ -70,6 +70,12 @@ jobs:
       - name: Apply repository finalization
         run: node scripts/finalize-release.mjs
 
+      - name: Keep workflow files user-managed
+        shell: bash
+        run: |
+          git checkout -- .github/workflows/ci.yml
+          rm -f lab-manual-data.json
+
       - name: Commit generated release
         shell: bash
         run: |
