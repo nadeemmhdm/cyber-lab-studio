@@ -47,15 +47,15 @@ The repository follows the product build specification in twelve implementation 
 
 ## Phase 5 — AWS simulator
 
-- [ ] Service/resource registries
-- [ ] Parser/dispatcher
-- [ ] IAM permission engine
-- [ ] VPC/network engine
-- [ ] EC2/compute engine
-- [ ] S3/storage engine
-- [ ] Logs/audit/findings
-- [ ] AWS-style errors
-- [ ] Compatibility matrix and tests
+- [x] Service/resource registries
+- [x] Parser/dispatcher
+- [x] IAM permission engine
+- [x] VPC/network engine
+- [x] EC2/compute engine
+- [x] S3/storage engine
+- [x] Logs/audit/findings
+- [x] AWS-style errors
+- [x] Compatibility matrix and tests
 
 ## Phase 6 — Azure simulator
 
