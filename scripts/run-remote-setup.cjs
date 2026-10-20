@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const childProcess = require("node:child_process");
 const { syncBuiltinESMExports } = require("node:module");
 const { platform } = require("node:os");
