@@ -32,6 +32,7 @@ jobs:
           bash -n install.sh cyberlab.sh
           CYBERLAB_INSTALL_DRY_RUN=1 bash ./install.sh
           node --check scripts/remote-setup.mjs
+          node scripts/run-remote-setup.cjs --process-smoke
       - name: Validate unified Linux bootstrap
         run: bash ./cyberlab.sh doctor --ci
       - name: Install locked dependencies
@@ -83,6 +84,7 @@ jobs:
         run: |
           & .\install.ps1 -DryRun
           node --check scripts/remote-setup.mjs
+          node scripts/run-remote-setup.cjs --process-smoke
       - name: Validate unified Windows bootstrap
         run: cmd /c cyberlab.cmd doctor --ci
       - name: Install locked dependencies
