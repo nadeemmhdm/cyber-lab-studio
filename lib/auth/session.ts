@@ -1,7 +1,8 @@
-import type { RoleType } from "@prisma/client";
+import { RoleType } from "@prisma/client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { firebaseAdminConfigured, getFirebaseAdminAuth } from "@/lib/firebase/admin";
+import { getPlatformControls } from "@/lib/platform/settings";
 import { prisma } from "@/lib/prisma";
 
 export const SESSION_COOKIE = "cyberlab_session";
@@ -31,6 +32,15 @@ export async function getCurrentSession() {
   } catch { return null; }
 }
 
-export async function requireUser() { const session = await getCurrentSession(); if (!session) redirect("/login"); return session; }
+export async function requireUser() {
+  const session = await getCurrentSession();
+  if (!session) redirect("/login");
+  if (!session.user.roles.includes(RoleType.ADMIN)) {
+    const controls = await getPlatformControls();
+    if (controls.maintenance.enabled) redirect("/maintenance");
+  }
+  return session;
+}
+
 export async function revokeCurrentSession() { const jar = await cookies(); jar.set(SESSION_COOKIE, "", { ...firebaseSessionCookieOptions(new Date(0)), maxAge: 0 }); }
 export async function revokeAllSessions(userId: string) { const user = await prisma.user.findUnique({ where: { id: userId }, select: { firebaseUid: true } }); if (user?.firebaseUid && firebaseAdminConfigured()) await getFirebaseAdminAuth().revokeRefreshTokens(user.firebaseUid); await revokeCurrentSession(); }
