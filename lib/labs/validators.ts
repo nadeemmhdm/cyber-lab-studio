@@ -70,9 +70,18 @@ function hasAllQueryEvidence(evidence: ValidationEvidence) {
   return required.every((query) => successful.includes(normalize(query)));
 }
 
+function isMutatingSecurityUiAction(command: string) {
+  const value = normalize(command);
+  return /run (sentinel )?detections/.test(value)
+    || /add (an )?(analyst |investigation |final )?note/.test(value)
+    || /update .*incident/.test(value)
+    || /set .*incident.*(status|severity)/.test(value);
+}
+
 function mutationRequired(evidence: ValidationEvidence) {
   const required = solutionEvidence(evidence.labNumber);
-  return required.cli.some((command) => !isReadOnlyCli(command)) || required.uiActions.length > 0;
+  const mutatingUi = required.uiActions.some(isMutatingSecurityUiAction);
+  return required.cli.some((command) => !isReadOnlyCli(command)) || mutatingUi;
 }
 
 function awsState(value: Prisma.JsonValue) {
