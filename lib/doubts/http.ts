@@ -14,7 +14,7 @@ export async function readDoubtForm(request: Request) {
   if (file instanceof File && file.size > 0) {
     if (!ALLOWED.has(file.type)) throw new DoubtError("IMAGE_TYPE_INVALID", "Screenshot must be PNG, JPEG, or WebP.", 415);
     if (file.size > 2 * 1024 * 1024) throw new DoubtError("IMAGE_SIZE_INVALID", "Screenshot must be smaller than 2 MB.", 413);
-    attachment = { fileName: file.name || "screenshot.png", mimeType: file.type as DoubtAttachmentInput["mimeType"], data: Buffer.from(await file.arrayBuffer()) };
+    attachment = { fileName: file.name || "screenshot.png", mimeType: file.type as DoubtAttachmentInput["mimeType"], data: new Uint8Array(await file.arrayBuffer()) };
   }
   return { message, attachment };
 }
