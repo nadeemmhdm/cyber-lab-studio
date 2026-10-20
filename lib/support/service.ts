@@ -18,14 +18,45 @@ async function writeAudit(tx: Prisma.TransactionClient, actorId: string, action:
   await tx.auditLog.create({ data: { actorId, action, targetType: "SupportTicket", targetId: ticketId, ...(metadata ? { metadata } : {}) } });
 }
 
+function solvedStatus(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const status = (metadata as { status?: unknown }).status;
+  return status === SupportTicketStatus.RESOLVED || status === SupportTicketStatus.CLOSED ? status : null;
+}
+
 export async function purgeExpiredResolvedSupportTickets(now = new Date()) {
   const cutoff = new Date(now.getTime() - SUPPORT_RESOLVED_RETENTION_MS);
-  const result = await prisma.supportTicket.deleteMany({
-    where: {
-      status: { in: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] },
-      updatedAt: { lte: cutoff },
-    },
+  const solvedTickets = await prisma.supportTicket.findMany({
+    where: { status: { in: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] } },
+    select: { id: true, updatedAt: true },
   });
+  if (!solvedTickets.length) return 0;
+
+  const ids = solvedTickets.map((ticket) => ticket.id);
+  const statusAudits = await prisma.auditLog.findMany({
+    where: {
+      action: "support.ticket.status_updated",
+      targetType: "SupportTicket",
+      targetId: { in: ids },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { targetId: true, metadata: true, createdAt: true },
+  });
+
+  const solvedAt = new Map<string, Date>();
+  for (const audit of statusAudits) {
+    if (!audit.targetId || solvedAt.has(audit.targetId) || !solvedStatus(audit.metadata)) continue;
+    solvedAt.set(audit.targetId, audit.createdAt);
+  }
+
+  // Older installations may have solved tickets created before status-transition
+  // auditing existed. Fall back to updatedAt only for those legacy rows.
+  const expiredIds = solvedTickets
+    .filter((ticket) => (solvedAt.get(ticket.id) ?? ticket.updatedAt) <= cutoff)
+    .map((ticket) => ticket.id);
+  if (!expiredIds.length) return 0;
+
+  const result = await prisma.supportTicket.deleteMany({ where: { id: { in: expiredIds } } });
   return result.count;
 }
 
@@ -63,8 +94,12 @@ export async function addUserSupportReply(userId: string, ticketId: string, rawM
     if (!ticket) throw new SupportError("TICKET_NOT_FOUND", "Support ticket not found.", 404);
     if (ticket.status === SupportTicketStatus.CLOSED) throw new SupportError("TICKET_CLOSED", "This ticket is closed. Create a new report if you need more help.", 409);
     const reply = await tx.supportReply.create({ data: { ticketId, authorId: userId, message, isAdminReply: false } });
-    if (ticket.status === SupportTicketStatus.RESOLVED) await tx.supportTicket.update({ where: { id: ticketId }, data: { status: SupportTicketStatus.OPEN } });
-    else await tx.supportTicket.update({ where: { id: ticketId }, data: { updatedAt: new Date() } });
+    if (ticket.status === SupportTicketStatus.RESOLVED) {
+      await tx.supportTicket.update({ where: { id: ticketId }, data: { status: SupportTicketStatus.OPEN } });
+      await writeAudit(tx, userId, "support.ticket.status_updated", ticketId, { status: SupportTicketStatus.OPEN, reason: "user_replied" });
+    } else {
+      await tx.supportTicket.update({ where: { id: ticketId }, data: { updatedAt: new Date() } });
+    }
     await writeAudit(tx, userId, "support.ticket.user_replied", ticketId);
     return reply;
   });
@@ -92,8 +127,12 @@ export async function addAdminSupportReply(adminId: string, ticketId: string, ra
     const ticket = await tx.supportTicket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new SupportError("TICKET_NOT_FOUND", "Support ticket not found.", 404);
     const reply = await tx.supportReply.create({ data: { ticketId, authorId: adminId, message, isAdminReply: true } });
-    if (ticket.status === SupportTicketStatus.OPEN) await tx.supportTicket.update({ where: { id: ticketId }, data: { status: SupportTicketStatus.IN_PROGRESS } });
-    else await tx.supportTicket.update({ where: { id: ticketId }, data: { updatedAt: new Date() } });
+    if (ticket.status === SupportTicketStatus.OPEN) {
+      await tx.supportTicket.update({ where: { id: ticketId }, data: { status: SupportTicketStatus.IN_PROGRESS } });
+      await writeAudit(tx, adminId, "support.ticket.status_updated", ticketId, { status: SupportTicketStatus.IN_PROGRESS, reason: "admin_replied" });
+    } else {
+      await tx.supportTicket.update({ where: { id: ticketId }, data: { updatedAt: new Date() } });
+    }
     await writeAudit(tx, adminId, "support.ticket.admin_replied", ticketId, { requesterId: ticket.userId });
     return reply;
   });
