@@ -27,6 +27,8 @@ jobs:
         with:
           node-version: 24.12.0
           cache: npm
+      - name: Validate unified Linux bootstrap
+        run: bash ./cyberlab.sh doctor --ci
       - name: Install locked dependencies
         run: npm ci
       - name: Dependency audit
@@ -71,6 +73,8 @@ jobs:
         with:
           node-version: 24.12.0
           cache: npm
+      - name: Validate unified Windows bootstrap
+        run: cmd /c cyberlab.cmd doctor --ci
       - name: Install locked dependencies
         run: npm ci
       - name: Generate Prisma client
