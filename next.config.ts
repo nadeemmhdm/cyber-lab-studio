@@ -1,8 +1,18 @@
 import type { NextConfig } from "next";
 
+const isProduction = process.env.NODE_ENV === "production";
+
+const scriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isProduction ? [] : ["'unsafe-eval'"]),
+  "https://apis.google.com",
+  "https://www.gstatic.com",
+].join(" ");
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com",
+  `script-src ${scriptSources}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",
@@ -12,7 +22,7 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
+  ...(isProduction ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
 const securityHeaders = [
@@ -22,13 +32,17 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-  ...(process.env.NODE_ENV === "production" ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }] : []),
+  ...(isProduction
+    ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]
+    : []),
 ];
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  async headers() { return [{ source: "/(.*)", headers: securityHeaders }]; },
+  async headers() {
+    return [{ source: "/(.*)", headers: securityHeaders }];
+  },
 };
 
 export default nextConfig;
