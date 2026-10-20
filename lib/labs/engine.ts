@@ -37,6 +37,11 @@ function initialInventory(initialState: Prisma.JsonValue): Prisma.InputJsonValue
   return [];
 }
 
+async function ensureNotCompleted(tx: Prisma.TransactionClient, userId: string, labId: string) {
+  const completion = await tx.completionRecord.findUnique({ where: { userId_labId: { userId, labId } }, select: { id: true } });
+  if (completion) throw new LabEngineError("LAB_ALREADY_COMPLETED", "This lab has already been verified and its certified environment is locked.", 409);
+}
+
 export async function resolvePublishedLab(slug: string, tx: Prisma.TransactionClient = prisma) {
   const lab = await tx.lab.findFirst({
     where: { slug, enabled: true },
@@ -65,6 +70,7 @@ async function ensurePrerequisites(tx: Prisma.TransactionClient, userId: string,
 export async function startLab(userId: string, slug: string, mode: LearningMode) {
   return prisma.$transaction(async (tx) => {
     const { lab, version } = await resolvePublishedLab(slug, tx);
+    await ensureNotCompleted(tx, userId, lab.id);
     await ensurePrerequisites(tx, userId, lab.prerequisiteIds);
 
     const environment = await tx.labEnvironment.upsert({
@@ -109,6 +115,7 @@ export async function getWorkspace(userId: string, slug: string) {
 export async function resetLab(userId: string, slug: string) {
   return prisma.$transaction(async (tx) => {
     const { lab, version } = await resolvePublishedLab(slug, tx);
+    await ensureNotCompleted(tx, userId, lab.id);
     const environment = await tx.labEnvironment.findUnique({
       where: { userId_labId_labVersionId: { userId, labId: lab.id, labVersionId: version.id } },
     });
@@ -136,6 +143,7 @@ export async function resetLab(userId: string, slug: string) {
 export async function recordTaskProgress(userId: string, slug: string, position: number) {
   return prisma.$transaction(async (tx) => {
     const { lab, version } = await resolvePublishedLab(slug, tx);
+    await ensureNotCompleted(tx, userId, lab.id);
     const task = version.tasks.find((entry) => entry.position === position);
     if (!task) throw new LabEngineError("TASK_NOT_FOUND", "Task position is not part of this lab version.", 404);
     const environment = await tx.labEnvironment.findUnique({
@@ -162,6 +170,8 @@ export async function mutateEnvironment<T>(
   return prisma.$transaction(async (tx) => {
     const environment = await tx.labEnvironment.findFirst({ where: { id: environmentId, userId } });
     if (!environment) throw new LabEngineError("ENVIRONMENT_FORBIDDEN", "Environment not found for this user.", 404);
+    if (environment.completedAt) throw new LabEngineError("LAB_ALREADY_COMPLETED", "This verified lab environment is locked against further mutation.", 409);
+    await ensureNotCompleted(tx, userId, environment.labId);
     if (!environment.environmentState || typeof environment.environmentState !== "object" || Array.isArray(environment.environmentState)) {
       throw new LabEngineError("INVALID_ENVIRONMENT_STATE", "The environment state is invalid.", 500);
     }
