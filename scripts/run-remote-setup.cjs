@@ -2,7 +2,9 @@ const childProcess = require("node:child_process");
 const { syncBuiltinESMExports } = require("node:module");
 const { platform } = require("node:os");
 
-if (platform() === "win32") {
+const isWindows = platform() === "win32";
+
+if (isWindows) {
   const originalSpawnSync = childProcess.spawnSync;
   const originalSpawn = childProcess.spawn;
   const needsShell = (command, options = {}) => {
@@ -17,6 +19,17 @@ if (platform() === "win32") {
     return originalSpawn(command, args, { ...options, shell: needsShell(command, options) });
   };
   syncBuiltinESMExports();
+}
+
+if (process.argv.includes("--process-smoke")) {
+  const npmCommand = isWindows ? "npm.cmd" : "npm";
+  const result = childProcess.spawnSync(npmCommand, ["--version"], { encoding: "utf8", stdio: "pipe" });
+  if (result.status !== 0) {
+    console.error(result.error?.message || result.stderr || `${npmCommand} smoke check failed`);
+    process.exit(1);
+  }
+  console.log(`installer child-process smoke OK: npm ${String(result.stdout).trim()}`);
+  process.exit(0);
 }
 
 import("./remote-setup.mjs").catch((error) => {
