@@ -60,12 +60,18 @@ describe("Phase 4 lab engine", () => {
     expect(after!.environment.environmentState).toEqual(after!.version.initialState);
   });
 
-  it("tracks tasks without granting completion from a button", async () => {
-    const progress = await recordTaskProgress(userA, "cloud-security-fundamentals", 3);
-    expect(progress.lastTaskPosition).toBe(3);
-    expect(progress.completionPct).toBe(99);
-    expect(progress.status).toBe(ProgressStatus.IN_PROGRESS);
-    const completion = await prisma.completionRecord.findUnique({ where: { userId_labId: { userId: userA, labId: progress.labId } } });
+  it("tracks four-task curriculum progress without granting completion from a button", async () => {
+    const thirdTask = await recordTaskProgress(userA, "cloud-security-fundamentals", 3);
+    expect(thirdTask.lastTaskPosition).toBe(3);
+    expect(thirdTask.completionPct).toBe(75);
+    expect(thirdTask.status).toBe(ProgressStatus.IN_PROGRESS);
+
+    const finalTask = await recordTaskProgress(userA, "cloud-security-fundamentals", 4);
+    expect(finalTask.lastTaskPosition).toBe(4);
+    expect(finalTask.completionPct).toBe(99);
+    expect(finalTask.status).toBe(ProgressStatus.IN_PROGRESS);
+
+    const completion = await prisma.completionRecord.findUnique({ where: { userId_labId: { userId: userA, labId: finalTask.labId } } });
     expect(completion).toBeNull();
   });
 
