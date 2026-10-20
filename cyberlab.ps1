@@ -46,11 +46,14 @@ if (-not $nodeExe) {
   $env:PATH = "$runtimeDir;$env:PATH"
 }
 
+$compatPatch = Join-Path $Root "scripts\windows-child-process-patch.cjs"
+if (-not (Test-Path $compatPatch)) { throw "Windows installer compatibility module is missing: $compatPatch" }
+
 if ($args.Count -gt 0 -and $args[0] -eq "install") {
   $rest = @()
   if ($args.Count -gt 1) { $rest = $args[1..($args.Count - 1)] }
-  & $nodeExe (Join-Path $Root "scripts\run-remote-setup.cjs") @rest
+  & $nodeExe --require $compatPatch (Join-Path $Root "scripts\remote-setup.mjs") @rest
 } else {
-  & $nodeExe (Join-Path $Root "scripts\cyberlab.mjs") @args
+  & $nodeExe --require $compatPatch (Join-Path $Root "scripts\cyberlab.mjs") @args
 }
 exit $LASTEXITCODE
