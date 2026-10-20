@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 'use strict';
 
 const childProcess = require('node:child_process');
@@ -8,17 +9,19 @@ if (process.platform === 'win32') {
   const originalSpawn = childProcess.spawn;
   const comspec = process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
 
-  function quoteForCmd(value) {
+  function quoteArg(value) {
     const text = String(value);
     if (!text) return '""';
-    // All npm/npx arguments used by CyberLab are controlled by repository code.
-    // Still quote every token so spaces in paths are handled correctly.
+    if (!/[\s"&|<>^]/.test(text)) return text;
     return '"' + text.replace(/"/g, '""') + '"';
   }
 
   function wrap(command, args = []) {
-    const line = [quoteForCmd(command), ...args.map(quoteForCmd)].join(' ');
-    return [comspec, ['/d', '/s', '/c', line]];
+    // npm.cmd/npx.cmd are command names supplied by repository code. Do not quote
+    // the command token itself; cmd.exe would treat embedded quotes as part of the
+    // executable name. Quote only arguments that actually require it.
+    const line = [command, ...args.map(quoteArg)].join(' ');
+    return [comspec, ['/d', '/c', line]];
   }
 
   childProcess.spawnSync = function patchedSpawnSync(command, args, options) {
