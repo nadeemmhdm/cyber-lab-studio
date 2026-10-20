@@ -22,19 +22,22 @@ Use this checklist for CyberLab Studio Pro v1.0.0 and future releases.
 
 ## Functional verification
 
-- [ ] Email/password registration, verification, login, reset, logout and logout-all work.
+- [ ] Admin-controlled Email/Password onboarding, login, password reset/admin reset, logout and logout-all work.
 - [ ] Google sign-in works through Firebase.
-- [ ] First administrator bootstrap works only for the configured verified email and cannot be repeated.
+- [ ] First administrator setup requires the one-time setup token, honors the optional email restriction, and cannot be repeated.
+- [ ] Instructor seat-limited enrollment links create assigned Student accounts with learner-chosen usernames/passwords.
+- [ ] TOTP MFA enrollment/sign-in works and persistent login cooldown activates after repeated password failures.
 - [ ] Student, Instructor, and Admin authorization boundaries are enforced server-side.
 - [ ] All 30 labs open and persist independent learner environments.
 - [ ] AWS/Azure training commands persist state and return explicit errors for unsupported operations.
 - [ ] KQL, Sentinel, and Defender workflows use stored training events.
 - [ ] Server validation is required for 100%, flags, and achievements.
 - [ ] Support report/reply/status workflow works for learner and administrator views.
+- [ ] Per-lab Ask a Doubt screenshot/chat works between a Student and assigned Instructor.
 
 ## Security and operations
 
-- [ ] `INITIAL_ADMIN_EMAIL` is removed after the first administrator is created.
+- [ ] `INITIAL_ADMIN_SETUP_TOKEN` is removed after the first administrator is created; any optional email restriction is reviewed.
 - [ ] Firebase Admin secrets are server-only.
 - [ ] Production `APP_URL` uses HTTPS.
 - [ ] CSP/HSTS/security headers are present.

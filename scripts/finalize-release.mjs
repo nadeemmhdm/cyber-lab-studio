@@ -5,7 +5,10 @@ function write(path, content) { writeFileSync(path, content.replace(/\r\n/g, "\n
 function replaceOrFail(path, pattern, replacement, label) {
   const before = read(path);
   const after = before.replace(pattern, replacement);
-  if (after === before) throw new Error(`Could not apply ${label} to ${path}`);
+  if (after === before) {
+  if (typeof replacement === "string" && before.includes(replacement)) return;
+  throw new Error(`Could not apply ${label} to ${path}`);
+}
   write(path, after);
 }
 

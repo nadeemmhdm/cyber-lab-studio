@@ -45,23 +45,22 @@ CyberLab does not require application-level `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT
 
 ## First administrator account
 
-Before the first login, set:
+Set a one-time setup token in `.env` before the first administrator is created:
 
 ```env
+INITIAL_ADMIN_SETUP_TOKEN="replace-with-at-least-32-random-characters"
 INITIAL_ADMIN_EMAIL="admin@example.com"
 ```
 
-Then:
+The email restriction is optional. Then:
 
 1. Start CyberLab with `npm run dev`.
-2. Register/sign in using that exact Firebase email address.
-3. Verify the email address.
-4. Open `http://localhost:3000/setup`.
-5. Select **Claim administrator role**.
-6. Confirm `/admin` opens.
-7. Remove `INITIAL_ADMIN_EMAIL` from `.env` and restart the app.
+2. Open `http://localhost:3000/setup`.
+3. Enter the setup token, administrator display name, email, and strong password.
+4. Confirm `/admin` opens.
+5. Remove `INITIAL_ADMIN_SETUP_TOKEN` from `.env` and restart the application.
 
-The bootstrap endpoint refuses further claims after one administrator exists.
+The setup route refuses another first-admin provisioning after an Administrator exists. Public student self-registration is disabled. Administrators create Instructor accounts; an Instructor chooses a seat count and expiry to generate one enrollment link. Each student opens that link and chooses their own username/password until the seat limit is consumed.
 
 ## Start locally
 
@@ -81,7 +80,7 @@ Open `http://localhost:3000`.
 
 ## Roles
 
-- **Student** — starts labs, keeps isolated progress/history, earns flags/achievements, and submits support reports.
+- **Student** — joins through an Instructor enrollment link, uses username/password sign-in, starts labs, keeps isolated progress/history, earns flags/achievements, opens per-lab doubts, and submits support reports.
 - **Instructor** — reviews assigned learners and progress according to server-side assignment scope.
 - **Administrator** — manages users/roles/suspension, curriculum controls, platform policy, maintenance/quotas, health/audit/performance, and support conversations.
 

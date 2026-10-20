@@ -4,7 +4,7 @@ This release is Windows-first and uses SQLite locally. The recommended public-ac
 
 ## 1. Prepare the production process
 
-Complete `GETTING-STARTED.md`, remove `INITIAL_ADMIN_EMAIL` after the first administrator is created, then run:
+Complete `GETTING-STARTED.md`, provision the first administrator through `/setup`, remove `INITIAL_ADMIN_SETUP_TOKEN` after successful provisioning, then run:
 
 ```powershell
 .\scripts\windows-start.ps1
@@ -89,7 +89,7 @@ Allow only trusted organization identities or explicitly approved administrator 
 After tunnel startup:
 
 1. Open the public HTTPS URL in a private browser session.
-2. Register/login and verify the Firebase email flow.
+2. Sign in with the provisioned administrator, or create an Instructor enrollment link and verify a student can claim one seat with a username/password.
 3. Confirm lab catalogue and one training workspace load.
 4. Confirm `/admin` rejects non-admin users.
 5. Confirm the Support page can submit a ticket.

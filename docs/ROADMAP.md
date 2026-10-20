@@ -14,7 +14,7 @@ The repository follows the product build specification in twelve implementation 
 - [x] Architecture/security documentation
 
 ## Phase 2 — Authentication and RBAC
-- [x] Firebase email/password signup and login
+- [x] Firebase email/password identity and login
 - [x] Firebase email verification links
 - [x] Firebase password-reset links
 - [x] Firebase Google sign-in
@@ -104,11 +104,11 @@ The repository follows the product build specification in twelve implementation 
 - [x] Measured performance budgets
 
 ## Phase 12 — Full testing and deployment
-- [ ] Unit/integration/E2E suite
-- [ ] Two-user isolation E2E
-- [ ] Windows install documentation
-- [ ] Backup/restore tooling
-- [ ] Cloudflare Tunnel setup
-- [ ] Cloudflare Access recommendation for admin routes
-- [ ] Final compatibility matrices
-- [ ] Release checklist
+- [x] Unit/integration/E2E suite
+- [x] Two-user isolation E2E
+- [x] Windows install documentation
+- [x] Backup/restore tooling
+- [x] Cloudflare Tunnel setup
+- [x] Cloudflare Access recommendation for admin routes
+- [x] Final compatibility matrices
+- [x] Release checklist

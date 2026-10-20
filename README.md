@@ -20,7 +20,7 @@ All twelve implementation phases are complete in the release branch: architectur
 ## What ships
 
 - 30 complete labs with concepts, scenarios, four-task workflows, three progressive hint levels, detailed solutions, expected evidence, verification, common mistakes, and troubleshooting.
-- Firebase Authentication with email/password, verification links, password-reset links, Google sign-in, and Firebase Admin HttpOnly server sessions.
+- Firebase Authentication with email/password, verification links, password-reset links, Google sign-in, Firebase TOTP two-factor authentication, persistent sign-in cooldowns, and Firebase Admin HttpOnly server sessions.
 - SQLite + Prisma persistence with learner-owned versioned lab environments.
 - AWS-compatible labs for IAM, networking, compute, storage, exposure, logs, findings, and security posture.
 - Azure-compatible labs for Entra ID, RBAC, networking, storage, virtual machines, monitoring, audit, and security posture.
@@ -28,7 +28,8 @@ All twelve implementation phases are complete in the release branch: architectur
 - Microsoft Sentinel alert/incident workflows and Defender XDR investigation timelines built from shared security events.
 - Server-side validation for all 30 labs, unique cryptographic completion flags, and achievements.
 - Student, Instructor, and Administrator roles with server-side authorization.
-- Instructor learner assignments and seat/time-limited enrollment links.
+- Instructor learner assignments and seat/time-limited enrollment links; public student self-signup is disabled.
+- Per-lab **Ask a Doubt** conversations with protected screenshot capture/upload and continuous student-instructor chat.
 - Administrator user/role/suspension, curriculum, maintenance, quota, health, audit, performance, and support controls.
 - User support tickets with private conversations, administrator replies, and ticket lifecycle management.
 - Windows-first setup, SQLite backup/restore, Cloudflare Tunnel deployment guidance, and Linux + Windows release gates.
@@ -67,23 +68,22 @@ CyberLab does **not** require application-level `GOOGLE_CLIENT_ID` or `GOOGLE_CL
 
 ### 4. Create the first administrator
 
-Before first login set:
+Generate a strong one-time setup token and place it in `.env`:
 
 ```env
+INITIAL_ADMIN_SETUP_TOKEN="replace-with-at-least-32-random-characters"
 INITIAL_ADMIN_EMAIL="admin@example.com"
 ```
 
-Then:
+`INITIAL_ADMIN_EMAIL` is optional; when set, the first administrator must use that address. Then:
 
 1. Start CyberLab with `npm run dev`.
-2. Register/sign in with that exact email address.
-3. Verify the email through Firebase.
-4. Open `http://localhost:3000/setup`.
-5. Select **Claim administrator role**.
-6. Confirm `/admin` works.
-7. Remove `INITIAL_ADMIN_EMAIL` from `.env` and restart CyberLab.
+2. Open `http://localhost:3000/setup`.
+3. Enter the setup token, administrator display name, email, and a strong password.
+4. Confirm `/admin` opens.
+5. Remove `INITIAL_ADMIN_SETUP_TOKEN` from `.env` and restart CyberLab.
 
-The bootstrap is server-locked after the first Administrator exists.
+The first-run endpoint becomes permanently unavailable after an Administrator exists. Administrators provision Instructor accounts; Instructors generate seat-limited, expiring enrollment links so students can choose their own username/password. There is no public student self-signup.
 
 ### 5. Run
 
@@ -175,9 +175,11 @@ Task progress can reach only 99%. A lab reaches 100% only when the authenticated
 
 Signed-in users can open `/support` to report lab, account, access, content, or platform issues. Users see only their own support conversations.
 
-Administrators can see the reporter account, roles, account status, conversation history, category/priority, reply directly, and move tickets through `OPEN`, `IN_PROGRESS`, `RESOLVED`, and `CLOSED`.
+Inside each lab workspace, a student can open **Ask a Doubt**, capture a selected screen/window or upload a PNG/JPEG/WebP screenshot under 2 MB, and continue a private conversation with the assigned instructor. Screenshots are served only through authenticated, authorized routes.
 
-The Admin control center also manages users/roles/suspension, learning-mode policy, hints/solutions, lab availability, platform maintenance/quotas, audit history, database health, and performance telemetry.
+Administrators can see the reporter account, roles, account status, conversation history, category/priority, reply directly, and move support tickets through `OPEN`, `IN_PROGRESS`, `RESOLVED`, and `CLOSED`.
+
+The Admin control center also manages student/instructor/admin accounts, roles, suspension, password reset, instructor provisioning, learning-mode policy, hints/solutions, lab availability, platform maintenance/quotas, audit history, database health, and performance telemetry.
 
 ## Quality and release verification
 
@@ -222,6 +224,7 @@ See [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md) and [`SECURITY.md`](SECURITY.
 - [`SECURITY-OPERATIONS.md`](docs/SECURITY-OPERATIONS.md) — Sentinel + Defender shared investigation model.
 - [`CURRICULUM.md`](docs/CURRICULUM.md) — all 30 labs, modes, tasks, hints, and solutions.
 - [`VALIDATION-AND-ACHIEVEMENTS.md`](docs/VALIDATION-AND-ACHIEVEMENTS.md) — validators, completion, flags, and achievements.
+- [`ACCOUNT-ONBOARDING.md`](docs/ACCOUNT-ONBOARDING.md) — first admin, instructor provisioning, enrollment links, username login, cooldowns, and TOTP MFA.
 - [`MANAGEMENT.md`](docs/MANAGEMENT.md) — instructor, admin, enrollment, and support management.
 - [`PLATFORM-HARDENING.md`](docs/PLATFORM-HARDENING.md) — security, performance, and accessibility controls.
 - [`COMPATIBILITY.md`](docs/COMPATIBILITY.md) — implemented command/workflow matrix.
