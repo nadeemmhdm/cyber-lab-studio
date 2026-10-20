@@ -7,13 +7,52 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum RoleType { STUDENT INSTRUCTOR ADMIN }
-enum Platform { FUNDAMENTALS AWS AZURE SENTINEL KQL DEFENDER_XDR }
-enum Difficulty { BEGINNER INTERMEDIATE ADVANCED }
-enum LearningMode { GUIDED PRACTICE CHALLENGE }
-enum ProgressStatus { NOT_STARTED IN_PROGRESS COMPLETED }
-enum AttemptStatus { STARTED FAILED PASSED }
-enum ResourceProvider { AWS AZURE SENTINEL DEFENDER_XDR INTERNAL }
+enum RoleType {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum Platform {
+  FUNDAMENTALS
+  AWS
+  AZURE
+  SENTINEL
+  KQL
+  DEFENDER_XDR
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum LearningMode {
+  GUIDED
+  PRACTICE
+  CHALLENGE
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AttemptStatus {
+  STARTED
+  FAILED
+  PASSED
+}
+
+enum ResourceProvider {
+  AWS
+  AZURE
+  SENTINEL
+  DEFENDER_XDR
+  INTERNAL
+}
 
 model User {
   id String @id @default(cuid())
