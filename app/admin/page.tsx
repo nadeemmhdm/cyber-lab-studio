@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { RoleType } from "@prisma/client";
 import { Activity, Database, ShieldCheck, UsersRound } from "lucide-react";
 import { AdminConsole } from "@/components/admin/admin-console";
+import { InstructorProvisioner } from "@/components/admin/instructor-provisioner";
 import { AdminSupportDesk } from "@/components/admin/support-desk";
 import { requireRole } from "@/lib/auth/rbac";
 import { getAdminOverview } from "@/lib/management/service";
@@ -49,7 +50,7 @@ export default async function AdminPage() {
     <section className="shell py-10 sm:py-14">
       <p className="eyebrow">Administration</p>
       <h1 className="mt-2 text-4xl font-semibold tracking-tight">Platform control center</h1>
-      <p className="mt-3 muted">Server-authorized controls for users, curriculum, support, platform policy, audit history, operational health, and bounded performance telemetry.</p>
+      <p className="mt-3 muted">Server-authorized controls for users, instructor provisioning, curriculum, support, platform policy, audit history, operational health, and bounded performance telemetry.</p>
 
       <div className="stat-grid mt-8">
         <Stat icon={UsersRound} label="Users" value={data.health.users} />
@@ -58,6 +59,7 @@ export default async function AdminPage() {
         <Stat icon={Database} label="SQLite" value={data.health.sqliteVersion} />
       </div>
 
+      <div className="mt-8"><InstructorProvisioner /></div>
       <div className="mt-8"><AdminConsole initialUsers={data.users} labs={data.labs} initialControls={data.controls} /></div>
       <div className="mt-8"><AdminSupportDesk tickets={tickets} /></div>
 
