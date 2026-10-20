@@ -1,0 +1,65 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { LabWorkspaceControls } from "@/components/labs/lab-workspace-controls";
+import { requireUser } from "@/lib/auth/session";
+import { getWorkspace, LabEngineError } from "@/lib/labs/engine";
+
+export const metadata: Metadata = { title: "Lab workspace" };
+
+export default async function LabWorkspacePage({ params }: { params: Promise<{ slug: string }> }) {
+  const session = await requireUser();
+  const { slug } = await params;
+  let workspace;
+  try {
+    workspace = await getWorkspace(session.user.id, slug);
+  } catch (error) {
+    if (error instanceof LabEngineError && error.status === 404) notFound();
+    throw error;
+  }
+  if (!workspace) redirect(`/labs/${slug}`);
+
+  const progress = workspace.progress;
+  const state = JSON.stringify(workspace.environment.environmentState, null, 2);
+
+  return (
+    <section className="shell py-10 sm:py-14">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <Link href={`/labs/${slug}`} className="text-link text-sm">← Lab overview</Link>
+          <p className="eyebrow mt-5">Isolated student workspace</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Lab {String(workspace.lab.number).padStart(2, "0")}: {workspace.lab.title}</h1>
+          <p className="mt-3 muted">Version {workspace.version.version} · {workspace.attempt?.mode ?? "GUIDED"} mode · Reset #{workspace.environment.resetCount}</p>
+        </div>
+        <div className="rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          <span className="muted">Task progress</span><strong className="ml-2">{progress?.completionPct ?? 0}%</strong>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="space-y-6">
+          {workspace.policy.showConcepts ? (
+            <article className="glass rounded-3xl p-6">
+              <h2 className="text-xl font-semibold">Concept & scenario</h2>
+              <p className="mt-3 leading-7 muted">{workspace.version.conceptExplanation}</p>
+              <p className="mt-4 leading-7 muted">{workspace.version.scenario}</p>
+            </article>
+          ) : (
+            <article className="rounded-3xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}><h2 className="font-semibold">Challenge mode</h2><p className="mt-2 text-sm muted">Concept guidance, hints, and solutions are hidden by the mode policy.</p></article>
+          )}
+
+          <article className="rounded-3xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+            <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-semibold">Persisted simulator state</h2><span className="text-xs muted">SQLite-backed</span></div>
+            <pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border p-4 text-xs leading-6" style={{ borderColor: "var(--border)", background: "var(--surface-strong)" }}>{state}</pre>
+          </article>
+        </div>
+
+        <aside className="glass h-fit rounded-3xl p-5 sm:p-6">
+          <h2 className="text-xl font-semibold">Tasks</h2>
+          <p className="mt-2 text-sm leading-6 muted">Progress is persisted, but lab completion is never granted from these buttons. Server validation owns completion.</p>
+          <div className="mt-5"><LabWorkspaceControls slug={slug} tasks={workspace.version.tasks.map((task) => ({ id: task.id, position: task.position, title: task.title, instruction: task.instruction }))} lastTaskPosition={progress?.lastTaskPosition ?? 0} /></div>
+        </aside>
+      </div>
+    </section>
+  );
+}
