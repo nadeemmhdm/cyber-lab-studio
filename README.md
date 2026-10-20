@@ -4,7 +4,7 @@ CyberLab Studio Pro is a multi-user cybersecurity training platform for hands-on
 
 ## Current status
 
-Phases 1–8 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset, persisted progress/history, cross-user isolation, native AWS and Azure simulators, a KQL AST evaluator, Microsoft Sentinel detection/incident workflows, Defender XDR investigation state built from shared synthetic security events, and complete Version 2 educational curriculum for all 30 labs with tasks, three-level hints, explained solutions, expected evidence, verification, common mistakes, and troubleshooting.
+Phases 1–9 are implemented. The platform has a responsive Next.js UI, SQLite/Prisma persistence, Firebase Authentication, a 30-lab catalogue, versioned per-student lab environments, deterministic reset before verified completion, persisted progress/history, cross-user isolation, native AWS and Azure simulators, a KQL AST evaluator, Microsoft Sentinel detection/incident workflows, Defender XDR investigation state built from shared synthetic security events, complete Version 2 educational curriculum for all 30 labs, and server-authoritative validation with transactional completion, cryptographic per-user flags, and verified achievements.
 
 The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and blocks on `npm audit --audit-level=moderate`.
 
@@ -18,6 +18,8 @@ The dependency graph is locked with `package-lock.json`; CI uses `npm ci` and bl
 - Native KQL parser/AST/evaluator
 - Shared Sentinel/Defender XDR synthetic security-event model
 - Versioned 30-lab educational content registry
+- Server-side 30-lab validation registry
+- Transactional completion/flag/achievement services
 - Zod validation
 - Vitest
 
@@ -58,7 +60,13 @@ The native simulators never forward input to a host shell or real cloud account.
 - **Practice** — keeps the curriculum and solution available while learners perform the real simulator/query workflow themselves.
 - **Challenge** — hides concepts, hints, and solutions according to the lab-mode policy.
 
-Opening a hint or solution never grants completion. Server-side validation remains authoritative for completion and flags.
+Opening a hint or solution never grants completion. Task workflow is capped below 100%; the authenticated server validates persisted evidence before issuing the completion record and unique flag. Verified labs are then locked against environment reset so an earned completion remains tied to the state that was certified.
+
+## Validation and achievements
+
+Each of the 30 labs has a server-side validator profile. Depending on the lab, validation can use successful terminal history, successful KQL history, persisted simulator state, state-derived findings, and persisted Sentinel/Defender investigation actions. Read-only investigation labs are not forced to perform fake mutations.
+
+Successful validation atomically records the passing validation result, marks the attempt passed, moves progress to 100%, creates the completion record, issues one cryptographically random `CYBERLAB{...}` flag, writes an audit event, and evaluates achievements. Failed validation creates no completion or flag. Re-validating an already completed lab returns the same existing flag rather than creating duplicates.
 
 ## Useful commands
 
@@ -77,13 +85,13 @@ npm run db:studio
 ## Security principles
 
 - Firebase Web SDK handles identity; Firebase Admin verifies server sessions.
-- Browser code never receives Firebase Admin credentials, database secrets, flag material, or real cloud credentials.
+- Browser code never receives Firebase Admin credentials, database secrets, hidden validator internals, or real cloud credentials.
+- Completion flags are generated only after successful server-side validation and are globally unique in the database.
 - Authentication state for CyberLab is an HttpOnly server session cookie, not localStorage.
 - Simulator commands use registries and internal state only; host-shell execution is prohibited.
 - KQL executes only against stored synthetic training tables.
 - Sentinel analytics rules create alerts only from real KQL matches in the learner environment.
 - Defender XDR correlations reference the same stored event IDs used by KQL and Sentinel.
-- Lab validation and flag generation remain server-side.
 - Student lab environments are isolated by user + lab + version.
 - Educational hints/solutions do not contain flags or hidden validator internals.
 - Unsupported simulator operations return explicit errors rather than fake success.
@@ -99,6 +107,7 @@ npm run db:studio
 - `docs/KQL-ENGINE.md` — KQL parser/evaluator architecture and subset
 - `docs/SECURITY-OPERATIONS.md` — Sentinel + Defender XDR shared investigation model
 - `docs/PHASE8-CONTENT.md` — Version 2 educational content architecture
+- `docs/PHASE9.md` — validation, completion, flags, achievements, and leakage controls
 - `docs/COMPATIBILITY.md` — implemented compatibility matrix
 - `docs/ROADMAP.md` — implementation phases
 - `SECURITY.md` — vulnerability reporting and security rules
