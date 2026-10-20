@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AwsTerminal } from "@/components/labs/aws-terminal";
+import { AzureTerminal } from "@/components/labs/azure-terminal";
 import { LabWorkspaceControls } from "@/components/labs/lab-workspace-controls";
 import { requireUser } from "@/lib/auth/session";
 import { getWorkspace, LabEngineError } from "@/lib/labs/engine";
@@ -23,7 +24,8 @@ export default async function LabWorkspacePage({ params }: { params: Promise<{ s
 
   const progress = workspace.progress;
   const state = JSON.stringify(workspace.environment.environmentState, null, 2);
-  const terminalHistory = workspace.lab.platform === "AWS" ? await prisma.terminalHistory.findMany({ where: { userId: session.user.id, environmentId: workspace.environment.id }, orderBy: { createdAt: "desc" }, take: 12 }) : [];
+  const hasTerminal = workspace.lab.platform === "AWS" || workspace.lab.platform === "AZURE";
+  const terminalHistory = hasTerminal ? await prisma.terminalHistory.findMany({ where: { userId: session.user.id, environmentId: workspace.environment.id }, orderBy: { createdAt: "desc" }, take: 12 }) : [];
   const initialTerminal = terminalHistory.reverse().map((item) => ({ command: item.command, exitCode: item.exitCode, output: item.outputSummary ?? "" }));
 
   return (
@@ -43,6 +45,7 @@ export default async function LabWorkspacePage({ params }: { params: Promise<{ s
           {workspace.policy.showConcepts ? <article className="glass rounded-3xl p-6"><h2 className="text-xl font-semibold">Concept & scenario</h2><p className="mt-3 leading-7 muted">{workspace.version.conceptExplanation}</p><p className="mt-4 leading-7 muted">{workspace.version.scenario}</p></article> : <article className="rounded-3xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}><h2 className="font-semibold">Challenge mode</h2><p className="mt-2 text-sm muted">Concept guidance, hints, and solutions are hidden by the mode policy.</p></article>}
 
           {workspace.lab.platform === "AWS" ? <div><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Native simulator</p><h2 className="mt-1 text-xl font-semibold">AWS CLI</h2></div><Link href="/docs/aws-compatibility" className="text-link text-sm">Supported commands</Link></div><AwsTerminal slug={slug} initialHistory={initialTerminal} /></div> : null}
+          {workspace.lab.platform === "AZURE" ? <div><div className="mb-3 flex items-center justify-between gap-3"><div><p className="eyebrow">Native simulator</p><h2 className="mt-1 text-xl font-semibold">Azure CLI</h2></div><Link href="/docs/azure-compatibility" className="text-link text-sm">Supported commands</Link></div><AzureTerminal slug={slug} initialHistory={initialTerminal} /></div> : null}
 
           <article className="rounded-3xl border p-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-semibold">Persisted simulator state</h2><span className="text-xs muted">SQLite-backed</span></div><pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border p-4 text-xs leading-6" style={{ borderColor: "var(--border)", background: "var(--surface-strong)" }}>{state}</pre></article>
         </div>
