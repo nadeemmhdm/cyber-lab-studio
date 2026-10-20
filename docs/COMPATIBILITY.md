@@ -166,3 +166,29 @@ See `docs/KQL-ENGINE.md` and `/docs/kql-compatibility`.
 Sentinel, KQL, and Defender XDR deliberately share the same synthetic event IDs so a learner can pivot between products and confirm the same attack evidence.
 
 See `docs/SECURITY-OPERATIONS.md`.
+
+## Phase 8 educational content
+
+| Curriculum capability | Status | Verification |
+| --- | --- | --- |
+| All 30 concept explanations | Supported | static content coverage test |
+| All 30 scenarios | Supported | unique scenario coverage test |
+| Versioned curriculum | Supported | `LabVersion` 2; Version 1 retained |
+| Four ordered tasks per lab | Supported | 120 unique task validator keys |
+| Three hint levels per lab | Supported | exact three-level invariant |
+| Complete solution per lab | Supported | required field/length tests |
+| Command/query purpose | Supported | every solution step has purpose text |
+| Command/query explanation | Supported | every solution step has explanation text |
+| Expected output/evidence | Supported | required for all 30 labs |
+| Security consequence | Supported | required for all 30 labs |
+| Verification guidance | Supported | required for all 30 labs |
+| Common mistakes | Supported | required for all 30 labs |
+| Troubleshooting | Supported | required for all 30 labs |
+| Guided mode hints/solutions | Supported | workspace mode policy |
+| Practice mode hints/solutions | Supported | workspace mode policy |
+| Challenge mode hides guidance | Supported | existing mode policy |
+| Hidden flag/validator leakage | Explicitly prohibited, tested | content leakage assertions |
+| Security-lab KQL examples | Supported, executed in tests | shared synthetic dataset |
+| Client-side completion from solution | Explicitly unsupported | server validation remains authoritative |
+
+See `docs/PHASE8-CONTENT.md`.
