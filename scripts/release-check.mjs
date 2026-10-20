@@ -15,10 +15,13 @@ const required = [
   "docs/PLATFORM-HARDENING.md",
   "docs/artifacts/CyberLab-Studio-Pro-v1.0.0.pptx",
   "docs/artifacts/CyberLab-Studio-Pro-Lab-Manual-v1.0.0.docx",
+  "install.ps1",
+  "install.sh",
   "cyberlab.cmd",
   "cyberlab.ps1",
   "cyberlab.sh",
   "scripts/cyberlab.mjs",
+  "scripts/remote-setup.mjs",
   "scripts/provision-first-admin.ts",
   "scripts/windows-setup.ps1",
   "scripts/windows-start.ps1",
@@ -37,4 +40,4 @@ if (missing.length || phaseNamedDocs.length || forbidden.length) {
   if (forbidden.length) console.error(`Obsolete repository-admin docs must be removed:\n- ${forbidden.join("\n- ")}`);
   process.exit(1);
 }
-console.log(`Release repository check passed (${required.length} required files, unified setup present, no obsolete phase/ruleset docs).`);
+console.log(`Release repository check passed (${required.length} required files, remote installer present, no obsolete phase/ruleset docs).`);
