@@ -44,18 +44,18 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "@tailwindcss/postcss": "^4.1.14",
+    "@tailwindcss/postcss": "^4.3.4",
     "@types/node": "^24.7.2",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.32",
     "prisma": "6.19.3",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.71.2",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^4.1.11"
   },
   "overrides": {
